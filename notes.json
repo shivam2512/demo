@@ -1,37 +1,5 @@
 [
   {
-    "date": "27-NOV-2025",
-    "session": "Afternoon",
-    "title": "DCL (Data Control Language)",
-    "body": "-- SQL content here...",
-    "time": "02:30 PM"
-  },
-{
-    "date": "27-NOV-2025",
-    "session": "Evening",
-    "title": "DCL (Data Control Language)",
-    "body": "-- SQL content here...",
-    "time": "11:30 PM"
-  },
-{
-    "date": "28-NOV-2025",
-    "session": "Afternoon",
-    "title": "DCL (Data Control Language)",
-    "body": "-- SQL content here...",
-    "time": "03:30 PM"
-  },
-{
-    "date": "28-NOV-2025",
-    "session": "Evening",
-    "title": "DCL (Data Control Language)",
-    "body": "-- SQL content here...",
-    "time": "10:30 PM"
-  }
-]
-
-
-[
-  {
     "date": "19-NOV-2025",
     "session": "Evening",
     "title": "Evening Practice Session",
