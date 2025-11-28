@@ -184,15 +184,23 @@
         return;
       }
 
-      // Find latest note by date
-      const latestNote = allNotes.reduce((latest, current) => {
-        const latestDate = new Date(latest.date);
-        const currentDate = new Date(current.date);
-        return currentDate > latestDate ? current : latest;
+      // Sort notes by date (newest first)
+      const sorted = [...allNotes].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA; // newest first
       });
 
+      // Get all notes for the latest date
+      const latestDate = sorted[0].date;
+      const latestDayNotes = allNotes.filter(n => n.date === latestDate);
+
+      // Prefer Evening if available, otherwise Afternoon
+      let latestNote = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
+
+      // Show date, session, and time
       document.getElementById("latestNotification").textContent =
-        `📢 Latest notes available: ${latestNote.date} (${latestNote.session} session)`;
+        `📢 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
     }
 
     loadNotes();

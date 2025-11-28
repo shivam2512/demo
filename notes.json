@@ -2,26 +2,29 @@
   {
     "date": "27-NOV-2025",
     "session": "Afternoon",
-    "title": "DDL & DML",
-    "body": "-- SQL content here..."
+    "title": "DCL (Data Control Language)",
+    "body": "-- SQL content here...",
+    "time": "02:30 PM"
   },
-  {
+{
     "date": "27-NOV-2025",
     "session": "Evening",
-    "title": "Backup & Comments",
-    "body": "-- SQL content here..."
+    "title": "DCL (Data Control Language)",
+    "body": "-- SQL content here...",
+    "time": "11:30 PM"
   },
 {
     "date": "28-NOV-2025",
     "session": "Afternoon",
-    "title": "Backup & Comments",
-    "body": "-- SQL content here..."
+    "title": "DCL (Data Control Language)",
+    "body": "-- SQL content here...",
+    "time": "03:30 PM"
   },
-
 {
     "date": "28-NOV-2025",
     "session": "Evening",
-    "title": "Backup & Comments",
-    "body": "-- SQL content here..."
+    "title": "DCL (Data Control Language)",
+    "body": "-- SQL content here...",
+    "time": "10:30 PM"
   }
 ]
