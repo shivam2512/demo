@@ -23,8 +23,10 @@
     </div>
   </nav>
 
-  <!-- Notification area -->
-  <div id="notification" class="alert alert-info text-center d-none"></div>
+  <!-- Persistent latest notes banner -->
+  <div id="latestNotification" class="alert alert-info text-center mb-0">
+    Latest notes: Loading…
+  </div>
 
   <main class="container py-4">
     <!-- Date filter -->
@@ -61,6 +63,7 @@
 
         allNotes = notes;
         renderNotes(notes);
+        updateLatestNotification(); // update persistent banner
       } catch (err) {
         console.error("Error loading notes:", err);
       }
@@ -164,16 +167,32 @@
       showNotification(`${filename} has been updated and downloaded!`);
     }
 
-    // Notification function
+    // Temporary notification (auto-hide)
     function showNotification(message) {
-      const notif = document.getElementById("notification");
+      const notif = document.createElement("div");
+      notif.className = "alert alert-success text-center";
       notif.textContent = message;
-      notif.classList.remove("d-none");
+      document.body.prepend(notif);
 
-      // Auto-hide after 5 seconds
-      setTimeout(() => {
-        notif.classList.add("d-none");
-      }, 5000);
+      setTimeout(() => notif.remove(), 5000);
+    }
+
+    // Persistent latest notes banner
+    function updateLatestNotification() {
+      if (!allNotes.length) {
+        document.getElementById("latestNotification").textContent = "No notes available yet.";
+        return;
+      }
+
+      // Find latest note by date
+      const latestNote = allNotes.reduce((latest, current) => {
+        const latestDate = new Date(latest.date);
+        const currentDate = new Date(current.date);
+        return currentDate > latestDate ? current : latest;
+      });
+
+      document.getElementById("latestNotification").textContent =
+        `📢 Latest notes available: ${latestNote.date} (${latestNote.session} session)`;
     }
 
     loadNotes();
