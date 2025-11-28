@@ -10,5 +10,18 @@
     "session": "Evening",
     "title": "Backup & Comments",
     "body": "-- SQL content here..."
+  },
+{
+    "date": "28-NOV-2025",
+    "session": "Afternoon",
+    "title": "Backup & Comments",
+    "body": "-- SQL content here..."
+  },
+
+{
+    "date": "27-NOV-2025",
+    "session": "Evening",
+    "title": "Backup & Comments",
+    "body": "-- SQL content here..."
   }
 ]
