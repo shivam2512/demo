@@ -7,12 +7,32 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     pre {
-      white-space: pre-wrap;   /* preserve formatting but allow wrapping */
+      white-space: pre-wrap;
       word-wrap: break-word;
       font-family: monospace;
     }
-    .toggle-btn {
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-bottom: 20px;
+    }
+    .calendar-day {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
       cursor: pointer;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .calendar-day.has-notes {
+      background-color: #d1e7dd; /* light green for days with notes */
+      font-weight: bold;
+    }
+    .calendar-day:hover {
+      background-color: #f8d7da; /* light red hover */
     }
   </style>
 </head>
@@ -29,19 +49,10 @@
   </div>
 
   <main class="container py-4">
-    <!-- Date filter -->
-    <div class="mb-3 d-flex gap-2">
-      <input type="date" id="filterDate" class="form-control" />
-      <button class="btn btn-primary" onclick="applyFilter()">Filter</button>
-      <button class="btn btn-secondary" onclick="resetFilter()">Reset</button>
-    </div>
+    <!-- Calendar view -->
+    <div id="calendarContainer" class="mb-4"></div>
 
-    <!-- Download buttons -->
-    <div class="mb-3 d-flex gap-2">
-      <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download Afternoon Notes</button>
-      <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download Evening Notes</button>
-    </div>
-
+    <!-- Notes display -->
     <div id="notesContainer"></div>
     <div id="emptyState" class="text-center text-muted py-5 d-none">
       <h5>No notes yet</h5>
@@ -56,17 +67,59 @@
         const res = await fetch("notes.json");
         const notes = await res.json();
 
-        // Notify if new content added
-        if (allNotes.length && notes.length > allNotes.length) {
-          showNotification("📢 New content has been added to the notes!");
-        }
-
         allNotes = notes;
-        renderNotes(notes);
-        updateLatestNotification(); // update persistent banner
+        renderCalendar(notes);
+        updateLatestNotification();
       } catch (err) {
         console.error("Error loading notes:", err);
       }
+    }
+
+    function renderCalendar(notes) {
+      const container = document.getElementById("calendarContainer");
+      container.innerHTML = "";
+
+      // Group notes by month-year
+      const groups = {};
+      notes.forEach(n => {
+        const [day, month, year] = n.date.split("-");
+        const key = `${month}-${year}`;
+        groups[key] = groups[key] || [];
+        groups[key].push(n);
+      });
+
+      Object.keys(groups).forEach(monthYear => {
+        const monthNotes = groups[monthYear];
+        const monthCard = document.createElement("div");
+        monthCard.className = "mb-4";
+
+        // Month header
+        monthCard.innerHTML = `<h5>${monthYear}</h5>`;
+
+        // Calendar grid
+        const calendar = document.createElement("div");
+        calendar.className = "calendar";
+
+        // Assume max 31 days
+        for (let d = 1; d <= 31; d++) {
+          const dayStr = String(d).padStart(2, "0");
+          const note = monthNotes.find(n => n.date.startsWith(dayStr));
+          const dayCell = document.createElement("div");
+          dayCell.className = "calendar-day" + (note ? " has-notes" : "");
+          dayCell.textContent = d;
+
+          if (note) {
+            dayCell.addEventListener("click", () => {
+              renderNotes(monthNotes.filter(n => n.date.startsWith(dayStr)));
+            });
+          }
+
+          calendar.appendChild(dayCell);
+        }
+
+        monthCard.appendChild(calendar);
+        container.appendChild(monthCard);
+      });
     }
 
     function renderNotes(notes) {
@@ -80,101 +133,19 @@
       }
       emptyState.classList.add("d-none");
 
-      // group by date
-      const groups = {};
       notes.forEach(n => {
-        groups[n.date] = groups[n.date] || [];
-        groups[n.date].push(n);
-      });
-
-      Object.keys(groups).sort().forEach(date => {
-        const list = groups[date];
         const card = document.createElement("div");
         card.className = "card mb-3";
-
         card.innerHTML = `
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <strong>${date}</strong>
-            <span class="toggle-btn text-primary">[+]</span>
+          <div class="card-header">
+            <strong>${n.date}</strong> – ${n.session} – ${n.title}
           </div>
-          <div class="list-group list-group-flush" style="display:none;">
-            ${list.map(n => `
-              <div class="list-group-item">
-                <h6>${n.session} – ${n.title}</h6>
-                <pre class="bg-light p-3"><code>${n.body}</code></pre>
-              </div>
-            `).join("")}
+          <div class="card-body">
+            <pre class="bg-light p-3"><code>${n.body}</code></pre>
           </div>
         `;
-
-        // toggle collapse
-        const toggleBtn = card.querySelector(".toggle-btn");
-        const content = card.querySelector(".list-group");
-        toggleBtn.addEventListener("click", () => {
-          if (content.style.display === "none") {
-            content.style.display = "block";
-            toggleBtn.textContent = "[–]";
-          } else {
-            content.style.display = "none";
-            toggleBtn.textContent = "[+]";
-          }
-        });
-
         container.appendChild(card);
       });
-    }
-
-    function applyFilter() {
-      const filterDate = document.getElementById("filterDate").value;
-      if (!filterDate) {
-        renderNotes(allNotes);
-        return;
-      }
-
-      // Convert YYYY-MM-DD → DD-MMM-YYYY
-      const d = new Date(filterDate);
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-      const year = d.getFullYear();
-      const formatted = `${day}-${month}-${year}`;
-
-      const filtered = allNotes.filter(n => n.date === formatted);
-      renderNotes(filtered);
-    }
-
-    function resetFilter() {
-      document.getElementById("filterDate").value = "";
-      renderNotes(allNotes);
-    }
-
-    // Download SQL file by session
-    function downloadSQLFile(session, filename) {
-      const sessionNotes = allNotes.filter(n => n.session === session);
-      const sqlContent = sessionNotes.map(n => `-- ${n.date} : ${n.title}\n${n.body}\n\n`).join("");
-      const blob = new Blob([sqlContent], { type: "text/sql" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      URL.revokeObjectURL(url);
-
-      // Notify on download
-      showNotification(`${filename} has been updated and downloaded!`);
-    }
-
-    // Temporary notification (auto-hide)
-    function showNotification(message) {
-      const notif = document.createElement("div");
-      notif.className = "alert alert-success text-center";
-      notif.textContent = message;
-      document.body.prepend(notif);
-
-      setTimeout(() => notif.remove(), 5000);
     }
 
     // Persistent latest notes banner
@@ -188,17 +159,13 @@
       const sorted = [...allNotes].sort((a, b) => {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
-        return dateB - dateA; // newest first
+        return dateB - dateA;
       });
 
-      // Get all notes for the latest date
       const latestDate = sorted[0].date;
       const latestDayNotes = allNotes.filter(n => n.date === latestDate);
-
-      // Prefer Evening if available, otherwise Afternoon
       let latestNote = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
 
-      // Show date, session, and time
       document.getElementById("latestNotification").textContent =
         `📢 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
     }
