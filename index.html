@@ -5,85 +5,60 @@
   <title>Practice Session Notes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
   <style>
     pre {
       white-space: pre-wrap;
       word-wrap: break-word;
       font-family: monospace;
     }
-
     .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-      margin-top: 10px;
+      gap: 6px;
+      margin-bottom: 20px;
     }
-
     .weekday {
       font-weight: 600;
       text-align: center;
       color: #495057;
       padding: 6px 0;
       background: #f8f9fa;
-      border-radius: 0.5rem;
+      border-radius: 0.25rem;
       border: 1px solid #e9ecef;
     }
-
     .calendar-day {
       border: 1px solid #dee2e6;
-      padding: 12px;
+      padding: 10px;
       text-align: center;
       cursor: pointer;
-      min-height: 70px;
+      min-height: 60px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 0.6rem;
-      background-color: #ffffff;
-      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
-      font-weight: 500;
-      color: #212529;
+      border-radius: 0.25rem;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      background-color: #fff;
     }
-
     .calendar-day.has-notes {
-      background: linear-gradient(135deg, #d1e7dd, #b6e0c2);
-      color: #0f5132;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+      background-color: #d1e7dd; /* success-subtle */
+      font-weight: 600;
       border-color: #b6e0c2;
     }
-
-    .calendar-day:hover {
-      transform: translateY(-2px);
-      background: linear-gradient(135deg, #f8d7da, #f5c2c7);
-      color: #842029;
-      box-shadow: 0 6px 16px rgba(220, 53, 69, 0.25);
-      border-color: #f5c2c7;
-    }
-
     .calendar-day.today {
-      background: linear-gradient(135deg, #fff3cd, #ffe69c);
-      color: #664d03;
+      background-color: #fff3cd; /* warning-subtle */
       border-color: #ffe69c;
-      box-shadow: 0 3px 10px rgba(255, 193, 7, 0.25);
       font-weight: 700;
     }
-
     .calendar-day.latest-update {
-      background: linear-gradient(135deg, #cfe2ff, #9ec5fe);
-      color: #084298;
+      background-color: #cfe2ff; /* primary-subtle */
       border-color: #9ec5fe;
-      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
       font-weight: 700;
+      box-shadow: 0 4px 10px rgba(13,110,253,0.2);
     }
-
-    .month-header {
-      background: linear-gradient(90deg, #0d6efd, #6610f2);
-    }
-
-    #calendarContainer .card {
-      border: none;
-      overflow: hidden;
+    .calendar-day:hover {
+      background-color: #f8d7da; /* danger-subtle */
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(220,53,69,0.15);
     }
   </style>
 </head>
@@ -94,23 +69,28 @@
     </div>
   </nav>
 
+  <!-- Persistent latest notes banner -->
   <div id="latestNotification" class="alert alert-info text-center mb-0">
     Latest notes: Loading…
   </div>
 
   <main class="container py-4">
+    <!-- Download buttons -->
     <div class="mb-3 d-flex gap-2 flex-wrap">
       <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download Afternoon Notes</button>
       <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download Evening Notes</button>
     </div>
 
+    <!-- Calendar view -->
     <div id="calendarContainer" class="mb-4"></div>
 
+    <!-- Notes display -->
     <div id="notesContainer"></div>
     <div id="emptyState" class="text-center text-muted py-5 d-none">
       <h5>No notes yet</h5>
     </div>
 
+    <!-- Clear view button -->
     <div class="text-center mt-3">
       <button class="btn btn-outline-secondary d-none" id="clearViewBtn" onclick="clearNotesView()">Clear View</button>
     </div>
@@ -119,134 +99,124 @@
   <script>
     let allNotes = [];
 
-    // Expecting n.date as "DD-MM-YYYY"
-    function parseDDMMYYYYToDate(str) {
+    // Parse DD-MM-YYYY to Date
+    function parseDDMMYYYY(str) {
       const [dd, mm, yyyy] = str.split("-");
       return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
     }
 
-    function daysInMonth(monthIndex0, year) {
-      // monthIndex0 is 0-11
-      return new Date(year, monthIndex0 + 1, 0).getDate();
+    // Get days in month from MM-YYYY
+    function getDaysInMonthKey(monthYear) {
+      const [mm, yyyy] = monthYear.split("-");
+      return new Date(Number(yyyy), Number(mm), 0).getDate(); // day 0 of next month = last day of month
     }
 
     async function loadNotes() {
       try {
         const res = await fetch("notes.json");
         const notes = await res.json();
+
         allNotes = Array.isArray(notes) ? notes : [];
+        renderCalendar(allNotes);
+        updateLatestNotification();
       } catch (err) {
         console.error("Error loading notes:", err);
         allNotes = [];
+        renderCalendar(allNotes);
+        document.getElementById("latestNotification").textContent = "Failed to load notes.";
       }
-      renderCalendar(allNotes);
-      updateLatestNotification();
-    }
-
-    function getMonthYearKeysFromNotes(notes) {
-      const set = new Set();
-      notes.forEach(n => {
-        const [dd, mm, yyyy] = String(n.date || "").split("-");
-        if (mm && yyyy) set.add(`${mm}-${yyyy}`);
-      });
-      // If no notes or malformed, show at least current month
-      if (set.size === 0) {
-        const now = new Date();
-        const mm = String(now.getMonth() + 1).padStart(2, "0");
-        const yyyy = String(now.getFullYear());
-        set.add(`${mm}-${yyyy}`);
-      }
-      return Array.from(set).sort((a, b) => {
-        const [am, ay] = a.split("-").map(Number);
-        const [bm, by] = b.split("-").map(Number);
-        // sort descending by year, then month
-        if (ay !== by) return by - ay;
-        return bm - am;
-      });
     }
 
     function renderCalendar(notes) {
       const container = document.getElementById("calendarContainer");
       container.innerHTML = "";
 
-      // Latest date across all notes
-      let latestDateStr = null;
-      if (notes.length) {
-        latestDateStr = notes
-          .map(n => n.date)
-          .filter(Boolean)
-          .sort((a, b) => parseDDMMYYYYToDate(b) - parseDDMMYYYYToDate(a))[0] || null;
-      }
-
-      // Group notes by MM-YYYY
+      // Group notes by month-year (MM-YYYY)
       const groups = {};
       notes.forEach(n => {
         if (!n.date) return;
-        const [dd, mm, yyyy] = n.date.split("-");
-        const key = `${mm}-${yyyy}`;
+        const [day, month, year] = n.date.split("-");
+        const key = `${month}-${year}`;
         (groups[key] ||= []).push(n);
       });
 
-      const monthKeys = getMonthYearKeysFromNotes(notes);
+      // If no notes, show current month with empty days
+      if (!Object.keys(groups).length) {
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const yyyy = String(now.getFullYear());
+        groups[`${mm}-${yyyy}`] = [];
+      }
+
+      // Latest date across all notes
+      const latestDateStr = notes.length
+        ? [...notes].sort((a, b) => parseDDMMYYYY(b.date) - parseDDMMYYYY(a.date))[0].date
+        : null;
 
       const row = document.createElement("div");
       row.className = "row";
 
       const today = new Date();
-      const tDD = String(today.getDate()).padStart(2, "0");
-      const tMM = String(today.getMonth() + 1).padStart(2, "0");
-      const tYYYY = String(today.getFullYear());
+      const todayDD = String(today.getDate()).padStart(2, "0");
+      const todayMM = String(today.getMonth() + 1).padStart(2, "0");
+      const todayYYYY = String(today.getFullYear());
 
-      monthKeys.forEach(monthYear => {
-        const [mmStr, yyyyStr] = monthYear.split("-");
-        const mm = Number(mmStr);
-        const yyyy = Number(yyyyStr);
-        const monthNotes = groups[monthYear] || [];
+      Object.keys(groups).forEach(monthYear => {
+        const monthNotes = groups[monthYear];
 
         const col = document.createElement("div");
-        col.className = "col-md-6 mb-4";
+        col.className = "col-md-6 mb-4"; // two calendars per row
 
+        // Card
         const card = document.createElement("div");
-        card.className = "card shadow-lg";
+        card.className = "card shadow-sm";
 
+        // Header
         const header = document.createElement("div");
-        header.className = "card-header text-white fw-bold month-header";
+        header.className = "card-header bg-primary text-white fw-bold";
         header.textContent = monthYear;
         card.appendChild(header);
 
-        const body = document.createElement("div");
-        body.className = "card-body";
+        // Body
+        const cardBody = document.createElement("div");
+        cardBody.className = "card-body";
 
-        const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        // Weekday labels
         const weekdayRow = document.createElement("div");
         weekdayRow.className = "calendar";
-        weekdays.forEach(w => {
+        ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(w => {
           const wd = document.createElement("div");
           wd.className = "weekday";
           wd.textContent = w;
           weekdayRow.appendChild(wd);
         });
-        body.appendChild(weekdayRow);
+        cardBody.appendChild(weekdayRow);
 
-        const grid = document.createElement("div");
-        grid.className = "calendar";
+        // Calendar grid
+        const calendar = document.createElement("div");
+        calendar.className = "calendar";
 
-        const dim = daysInMonth(mm - 1, yyyy); // mm is 1-12, convert to 0-11
-        for (let d = 1; d <= dim; d++) {
+        const daysInMonth = getDaysInMonthKey(monthYear);
+        const [mm, yyyy] = monthYear.split("-");
+
+        for (let d = 1; d <= daysInMonth; d++) {
           const ddStr = String(d).padStart(2, "0");
           const dayCell = document.createElement("div");
           let classes = "calendar-day";
 
+          // Notes for this day in this month
           const dayNotes = monthNotes.filter(n => n.date.startsWith(ddStr + "-"));
           if (dayNotes.length) classes += " has-notes";
 
-          if (mmStr === tMM && yyyyStr === tYYYY && ddStr === tDD) {
+          // Today highlight
+          if (mm === todayMM && yyyy === todayYYYY && ddStr === todayDD) {
             classes += " today";
           }
 
+          // Latest update highlight
           if (latestDateStr) {
             const [ldd, lmm, lyr] = latestDateStr.split("-");
-            if (ldd === ddStr && lmm === mmStr && lyr === yyyyStr) {
+            if (ldd === ddStr && lmm === mm && lyr === yyyy) {
               classes += " latest-update";
             }
           }
@@ -259,11 +229,11 @@
             dayCell.addEventListener("click", () => renderNotes(dayNotes));
           }
 
-          grid.appendChild(dayCell);
+          calendar.appendChild(dayCell);
         }
 
-        body.appendChild(grid);
-        card.appendChild(body);
+        cardBody.appendChild(calendar);
+        card.appendChild(cardBody);
         col.appendChild(card);
         row.appendChild(col);
       });
@@ -292,7 +262,7 @@
             <strong>${n.date}</strong> – ${n.session} – ${n.title}
           </div>
           <div class="card-body">
-            <pre class="bg-light p-3 rounded"><code>${n.body}</code></pre>
+            <pre class="bg-light p-3"><code>${n.body}</code></pre>
           </div>
         `;
         container.appendChild(card);
@@ -307,11 +277,10 @@
       document.getElementById("clearViewBtn").classList.add("d-none");
     }
 
+    // Download SQL file by session
     function downloadSQLFile(session, filename) {
       const sessionNotes = allNotes.filter(n => n.session === session);
-      const sqlContent = sessionNotes
-        .map(n => `-- ${n.date} : ${n.title}\n${n.body}\n\n`)
-        .join("");
+      const sqlContent = sessionNotes.map(n => `-- ${n.date} : ${n.title}\n${n.body}\n\n`).join("");
       const blob = new Blob([sqlContent], { type: "text/sql" });
       const url = URL.createObjectURL(blob);
 
@@ -326,29 +295,31 @@
       showNotification(`${filename} has been updated and downloaded!`);
     }
 
+    // Temporary notification (auto-hide)
     function showNotification(message) {
       const notif = document.createElement("div");
       notif.className = "alert alert-success text-center";
       notif.textContent = message;
       document.body.prepend(notif);
+
       setTimeout(() => notif.remove(), 5000);
     }
 
+    // Persistent latest notes banner
     function updateLatestNotification() {
-      const banner = document.getElementById("latestNotification");
       if (!allNotes.length) {
-        banner.textContent = "No notes available yet.";
+        document.getElementById("latestNotification").textContent = "No notes available yet.";
         return;
       }
 
-      const sorted = [...allNotes]
-        .filter(n => n.date)
-        .sort((a, b) => parseDDMMYYYYToDate(b.date) - parseDDMMYYYYToDate(a.date));
+      // Sort using DD-MM-YYYY parsing
+      const sorted = [...allNotes].sort((a, b) => parseDDMMYYYY(b.date) - parseDDMMYYYY(a.date));
       const latestDate = sorted[0].date;
       const latestDayNotes = allNotes.filter(n => n.date === latestDate);
-      const preferEvening = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
+      const latestNote = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
 
-      banner.textContent = `📢 Latest notes available: ${preferEvening.date} (${preferEvening.session} session, uploaded at ${preferEvening.time})`;
+      document.getElementById("latestNotification").textContent =
+        `📢 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
     }
 
     loadNotes();
