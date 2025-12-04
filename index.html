@@ -43,6 +43,7 @@
       background-color: #ffffff;
       transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
       font-weight: 500;
+      color: #212529;
     }
 
     .calendar-day.has-notes {
@@ -124,46 +125,69 @@
       return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
     }
 
-    function daysInMonthMMYYYY(mm, yyyy) {
-      // mm is "01".."12"
-      return new Date(Number(yyyy), Number(mm), 0).getDate();
+    function daysInMonth(monthIndex0, year) {
+      // monthIndex0 is 0-11
+      return new Date(year, monthIndex0 + 1, 0).getDate();
     }
 
     async function loadNotes() {
       try {
         const res = await fetch("notes.json");
         const notes = await res.json();
-        allNotes = notes || [];
-
-        renderCalendar(allNotes);
-        updateLatestNotification();
+        allNotes = Array.isArray(notes) ? notes : [];
       } catch (err) {
         console.error("Error loading notes:", err);
         allNotes = [];
-        renderCalendar(allNotes);
-        document.getElementById("latestNotification").textContent = "Failed to load notes.";
       }
+      renderCalendar(allNotes);
+      updateLatestNotification();
+    }
+
+    function getMonthYearKeysFromNotes(notes) {
+      const set = new Set();
+      notes.forEach(n => {
+        const [dd, mm, yyyy] = String(n.date || "").split("-");
+        if (mm && yyyy) set.add(`${mm}-${yyyy}`);
+      });
+      // If no notes or malformed, show at least current month
+      if (set.size === 0) {
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const yyyy = String(now.getFullYear());
+        set.add(`${mm}-${yyyy}`);
+      }
+      return Array.from(set).sort((a, b) => {
+        const [am, ay] = a.split("-").map(Number);
+        const [bm, by] = b.split("-").map(Number);
+        // sort descending by year, then month
+        if (ay !== by) return by - ay;
+        return bm - am;
+      });
     }
 
     function renderCalendar(notes) {
       const container = document.getElementById("calendarContainer");
       container.innerHTML = "";
 
-      // Determine latest date across all notes
+      // Latest date across all notes
       let latestDateStr = null;
       if (notes.length) {
         latestDateStr = notes
           .map(n => n.date)
-          .sort((a, b) => parseDDMMYYYYToDate(b) - parseDDMMYYYYToDate(a))[0];
+          .filter(Boolean)
+          .sort((a, b) => parseDDMMYYYYToDate(b) - parseDDMMYYYYToDate(a))[0] || null;
       }
 
-      // Group by MM-YYYY
+      // Group notes by MM-YYYY
       const groups = {};
       notes.forEach(n => {
+        if (!n.date) return;
         const [dd, mm, yyyy] = n.date.split("-");
         const key = `${mm}-${yyyy}`;
         (groups[key] ||= []).push(n);
       });
+
+      const monthKeys = getMonthYearKeysFromNotes(notes);
 
       const row = document.createElement("div");
       row.className = "row";
@@ -173,10 +197,11 @@
       const tMM = String(today.getMonth() + 1).padStart(2, "0");
       const tYYYY = String(today.getFullYear());
 
-      // Ensure months with no notes still render nothing (only months present in notes will show)
-      Object.keys(groups).forEach(monthYear => {
-        const [mm, yyyy] = monthYear.split("-");
-        const monthNotes = groups[monthYear];
+      monthKeys.forEach(monthYear => {
+        const [mmStr, yyyyStr] = monthYear.split("-");
+        const mm = Number(mmStr);
+        const yyyy = Number(yyyyStr);
+        const monthNotes = groups[monthYear] || [];
 
         const col = document.createElement("div");
         col.className = "col-md-6 mb-4";
@@ -206,25 +231,22 @@
         const grid = document.createElement("div");
         grid.className = "calendar";
 
-        const dim = daysInMonthMMYYYY(mm, yyyy);
+        const dim = daysInMonth(mm - 1, yyyy); // mm is 1-12, convert to 0-11
         for (let d = 1; d <= dim; d++) {
-          const dd = String(d).padStart(2, "0");
+          const ddStr = String(d).padStart(2, "0");
           const dayCell = document.createElement("div");
           let classes = "calendar-day";
 
-          // If any note exists for this day in this month group
-          const dayNotes = monthNotes.filter(n => n.date.startsWith(dd + "-"));
+          const dayNotes = monthNotes.filter(n => n.date.startsWith(ddStr + "-"));
           if (dayNotes.length) classes += " has-notes";
 
-          // Highlight today
-          if (mm === tMM && yyyy === tYYYY && dd === tDD) {
+          if (mmStr === tMM && yyyyStr === tYYYY && ddStr === tDD) {
             classes += " today";
           }
 
-          // Highlight latest updated date
           if (latestDateStr) {
             const [ldd, lmm, lyr] = latestDateStr.split("-");
-            if (ldd === dd && lmm === mm && lyr === yyyy) {
+            if (ldd === ddStr && lmm === mmStr && lyr === yyyyStr) {
               classes += " latest-update";
             }
           }
@@ -233,7 +255,6 @@
           dayCell.textContent = d;
 
           if (dayNotes.length) {
-            // Tooltip-ish title
             dayCell.title = dayNotes.map(n => `${n.session}: ${n.title}`).join(" | ");
             dayCell.addEventListener("click", () => renderNotes(dayNotes));
           }
@@ -248,11 +269,6 @@
       });
 
       container.appendChild(row);
-
-      // If there were no groups (no notes)
-      if (!Object.keys(groups).length) {
-        container.innerHTML = '<div class="alert alert-secondary">No calendars to show yet.</div>';
-      }
     }
 
     function renderNotes(notes) {
@@ -325,7 +341,9 @@
         return;
       }
 
-      const sorted = [...allNotes].sort((a, b) => parseDDMMYYYYToDate(b.date) - parseDDMMYYYYToDate(a.date));
+      const sorted = [...allNotes]
+        .filter(n => n.date)
+        .sort((a, b) => parseDDMMYYYYToDate(b.date) - parseDDMMYYYYToDate(a.date));
       const latestDate = sorted[0].date;
       const latestDayNotes = allNotes.filter(n => n.date === latestDate);
       const preferEvening = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
