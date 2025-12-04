@@ -136,20 +136,6 @@
       }
     }
 
-// Get actual number of days in a month
-function getDaysInMonth(year, monthNumber) {
-  const m = parseInt(monthNumber, 10);
-  return new Date(parseInt(year, 10), m, 0).getDate(); // last day of month
-}
-
-// Get weekday offset for the 1st of the month (Monday-first)
-function getStartOffset(year, monthNumber) {
-  const mIndex = parseInt(monthNumber, 10) - 1;
-  const first = new Date(parseInt(year, 10), mIndex, 1);
-  const js = first.getDay(); // 0=Sun,1=Mon,...6=Sat
-  return (js + 6) % 7; // convert to Monday-first
-}
-
     function renderCalendar(notes) {
       const container = document.getElementById("calendarContainer");
       container.innerHTML = "";
@@ -213,11 +199,11 @@ const startOffset = getStartOffset(yyyy, mm);
 for (let i = 0; i < startOffset; i++) {
   const empty = document.createElement("div");
   empty.className = "calendar-day";
-  empty.style.visibility = "hidden"; // keeps grid aligned
+  empty.style.visibility = "hidden"; 
   calendar.appendChild(empty);
 }
 
-// Actual days
+// Actual days only up to daysInMonth
 for (let d = 1; d <= daysInMonth; d++) {
   const dayStr = String(d).padStart(2, "0");
   const note = monthNotes.find(n => n.date.startsWith(dayStr));
@@ -251,6 +237,21 @@ for (let d = 1; d <= daysInMonth; d++) {
 
       container.appendChild(row);
     }
+
+    // Get actual number of days in a month
+function getDaysInMonth(year, monthNumber) {
+  const m = parseInt(monthNumber, 10);
+  return new Date(parseInt(year, 10), m, 0).getDate(); // last day of month
+}
+
+// Get weekday offset for the 1st of the month (Monday-first)
+function getStartOffset(year, monthNumber) {
+  const mIndex = parseInt(monthNumber, 10) - 1;
+  const first = new Date(parseInt(year, 10), mIndex, 1);
+  const js = first.getDay(); // 0=Sun,1=Mon,...6=Sat
+  return (js + 6) % 7; // convert to Monday-first
+}
+
 
     function renderNotes(notes) {
       const container = document.getElementById("notesContainer");
