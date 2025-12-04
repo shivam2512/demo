@@ -18,7 +18,7 @@
       margin-bottom: 20px;
     }
     .calendar-day {
-      border: 1px solid #ccc;
+      border: 1px solid #dee2e6;
       padding: 10px;
       text-align: center;
       cursor: pointer;
@@ -26,13 +26,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      border-radius: 0.25rem;
+      transition: background-color 0.2s ease;
     }
     .calendar-day.has-notes {
-      background-color: #d1e7dd; /* light green for days with notes */
+      background-color: #d1e7dd; /* Bootstrap success-light */
       font-weight: bold;
     }
     .calendar-day:hover {
-      background-color: #f8d7da; /* light red hover */
+      background-color: #f8d7da; /* Bootstrap danger-light */
     }
   </style>
 </head>
@@ -107,14 +109,19 @@
         const col = document.createElement("div");
         col.className = "col-md-6 mb-4"; // two calendars per row
 
+        // Bootstrap card wrapper
+        const card = document.createElement("div");
+        card.className = "card shadow-sm";
+
         // Month header
-        const header = document.createElement("h5");
+        const header = document.createElement("div");
+        header.className = "card-header bg-primary text-white fw-bold";
         header.textContent = monthYear;
-        col.appendChild(header);
+        card.appendChild(header);
 
         // Calendar grid
         const calendar = document.createElement("div");
-        calendar.className = "calendar";
+        calendar.className = "calendar card-body";
 
         for (let d = 1; d <= 31; d++) {
           const dayStr = String(d).padStart(2, "0");
@@ -132,7 +139,8 @@
           calendar.appendChild(dayCell);
         }
 
-        col.appendChild(calendar);
+        card.appendChild(calendar);
+        col.appendChild(card);
         row.appendChild(col);
       });
 
@@ -154,9 +162,9 @@
 
       notes.forEach(n => {
         const card = document.createElement("div");
-        card.className = "card mb-3";
+        card.className = "card mb-3 shadow-sm";
         card.innerHTML = `
-          <div class="card-header">
+          <div class="card-header bg-success text-white">
             <strong>${n.date}</strong> – ${n.session} – ${n.title}
           </div>
           <div class="card-body">
