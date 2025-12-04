@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,6 +75,15 @@
       font-weight: 700;
     }
 
+    /* Latest updated date highlight */
+    .calendar-day.latest-update {
+      background: linear-gradient(135deg, #cfe2ff, #9ec5fe);
+      color: #084298;
+      border-color: #9ec5fe;
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+      font-weight: 700;
+    }
+
     /* Card header gradient */
     .month-header {
       background: linear-gradient(90deg, #0d6efd, #6610f2);
@@ -123,6 +133,12 @@
   <script>
     let allNotes = [];
 
+    // Helper: parse DD-MM-YYYY to Date
+    function parseDDMMYYYY(ddmmyyyy) {
+      const [dd, mm, yyyy] = ddmmyyyy.split("-");
+      return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    }
+
     async function loadNotes() {
       try {
         const res = await fetch("notes.json");
@@ -140,11 +156,18 @@
       const container = document.getElementById("calendarContainer");
       container.innerHTML = "";
 
-      // Group notes by month-year (expects date as DD-MM-YYYY)
+      // Find latest date across all notes
+      let latestDateStr = null;
+      if (notes.length) {
+        const sortedByDate = [...notes].sort((a, b) => parseDDMMYYYY(b.date) - parseDDMMYYYY(a.date));
+        latestDateStr = sortedByDate[0].date; // DD-MM-YYYY
+      }
+
+      // Group notes by month-year (expects DD-MM-YYYY)
       const groups = {};
       notes.forEach(n => {
         const [day, month, year] = n.date.split("-");
-        const key = `${month}-${year}`;
+        const key = `${month}-${year}`; // MM-YYYY
         groups[key] = groups[key] || [];
         groups[key].push(n);
       });
@@ -153,7 +176,9 @@
       row.className = "row";
 
       const today = new Date();
-      const todayStr = String(today.getDate()).padStart(2, "0"); // DD
+      const todayDayStr = String(today.getDate()).padStart(2, "0");
+      const todayMonthStr = String(today.getMonth() + 1).padStart(2, "0");
+      const todayYearStr = String(today.getFullYear());
 
       Object.keys(groups).forEach(monthYear => {
         const monthNotes = groups[monthYear];
@@ -191,21 +216,35 @@
         const calendar = document.createElement("div");
         calendar.className = "calendar";
 
-        for (let d = 1; d <= 31; d++) {
+        // monthYear is "MM-YYYY"
+        const [mm, yyyy] = monthYear.split("-");
+        // Get actual days in month
+        const daysInMonth = new Date(Number(yyyy), Number(mm), 0).getDate();
+
+        for (let d = 1; d <= daysInMonth; d++) {
           const dayStr = String(d).padStart(2, "0");
           const note = monthNotes.find(n => n.date.startsWith(dayStr));
           const dayCell = document.createElement("div");
-          dayCell.className = "calendar-day" + (note ? " has-notes" : "");
-          dayCell.textContent = d;
+
+          let classes = "calendar-day";
+          if (note) classes += " has-notes";
 
           // Mark today if month-year matches current
-          const [mm, yyyy] = monthYear.split("-");
-          const isCurrentMonthYear =
-            String(today.getMonth() + 1).padStart(2, "0") === mm &&
-            String(today.getFullYear()) === yyyy;
-          if (isCurrentMonthYear && dayStr === todayStr) {
-            dayCell.classList.add("today");
+          const isCurrentMonthYear = (todayMonthStr === mm && todayYearStr === yyyy);
+          if (isCurrentMonthYear && dayStr === todayDayStr) {
+            classes += " today";
           }
+
+          // Highlight latest updated date
+          if (latestDateStr) {
+            const [ldd, lmm, lyr] = latestDateStr.split("-");
+            if (ldd === dayStr && lmm === mm && lyr === yyyy) {
+              classes += " latest-update";
+            }
+          }
+
+          dayCell.className = classes;
+          dayCell.textContent = d;
 
           if (note) {
             dayCell.title = `${note.date} • ${note.session} • ${note.title}`;
@@ -299,12 +338,7 @@
         return;
       }
 
-      const sorted = [...allNotes].sort((a, b) => {
-        const dateA = new Date(a.date.split("-").reverse().join("-")); // YYYY-MM-DD
-        const dateB = new Date(b.date.split("-").reverse().join("-"));
-        return dateB - dateA;
-      });
-
+      const sorted = [...allNotes].sort((a, b) => parseDDMMYYYY(b.date) - parseDDMMYYYY(a.date));
       const latestDate = sorted[0].date;
       const latestDayNotes = allNotes.filter(n => n.date === latestDate);
       const latestNote = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
@@ -317,3 +351,4 @@
   </script>
 </body>
 </html>
+```
