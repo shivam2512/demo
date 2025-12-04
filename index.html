@@ -99,13 +99,18 @@
         groups[key].push(n);
       });
 
+      const row = document.createElement("div");
+      row.className = "row";
+
       Object.keys(groups).forEach(monthYear => {
         const monthNotes = groups[monthYear];
-        const monthCard = document.createElement("div");
-        monthCard.className = "mb-4";
+        const col = document.createElement("div");
+        col.className = "col-md-6 mb-4"; // two calendars per row
 
         // Month header
-        monthCard.innerHTML = `<h5>${monthYear}</h5>`;
+        const header = document.createElement("h5");
+        header.textContent = monthYear;
+        col.appendChild(header);
 
         // Calendar grid
         const calendar = document.createElement("div");
@@ -127,9 +132,11 @@
           calendar.appendChild(dayCell);
         }
 
-        monthCard.appendChild(calendar);
-        container.appendChild(monthCard);
+        col.appendChild(calendar);
+        row.appendChild(col);
       });
+
+      container.appendChild(row);
     }
 
     function renderNotes(notes) {
