@@ -135,6 +135,18 @@
         console.error("Error loading notes:", err);
       }
     }
+// Helpers: get days in month and weekday offset
+function getDaysInMonth(year, monthNumber) {
+  const m = parseInt(monthNumber, 10);
+  return new Date(parseInt(year, 10), m, 0).getDate(); // last day of month
+}
+
+function getStartOffset(year, monthNumber) {
+  const mIndex = parseInt(monthNumber, 10) - 1;
+  const first = new Date(parseInt(year, 10), mIndex, 1);
+  const js = first.getDay(); // 0=Sun,1=Mon,...6=Sat
+  return (js + 6) % 7; // convert to Monday-first
+}
 
     function renderCalendar(notes) {
       const container = document.getElementById("calendarContainer");
@@ -191,31 +203,43 @@
         const calendar = document.createElement("div");
         calendar.className = "calendar";
 
-        for (let d = 1; d <= 31; d++) {
-          const dayStr = String(d).padStart(2, "0");
-          const note = monthNotes.find(n => n.date.startsWith(dayStr));
-          const dayCell = document.createElement("div");
-          dayCell.className = "calendar-day" + (note ? " has-notes" : "");
-          dayCell.textContent = d;
+        const [mm, yyyy] = monthYear.split("-");
+const daysInMonth = getDaysInMonth(yyyy, mm);
+const startOffset = getStartOffset(yyyy, mm);
 
-          // Mark today if month-year matches current
-          const [mm, yyyy] = monthYear.split("-");
-          const isCurrentMonthYear =
-            String(today.getMonth() + 1).padStart(2, "0") === mm &&
-            String(today.getFullYear()) === yyyy;
-          if (isCurrentMonthYear && dayStr === todayStr) {
-            dayCell.classList.add("today");
-          }
+// Empty cells before the first day (for alignment)
+for (let i = 0; i < startOffset; i++) {
+  const empty = document.createElement("div");
+  empty.className = "calendar-day";
+  empty.style.visibility = "hidden"; // keeps grid aligned
+  calendar.appendChild(empty);
+}
 
-          if (note) {
-            dayCell.title = `${note.date} • ${note.session} • ${note.title}`;
-            dayCell.addEventListener("click", () => {
-              renderNotes(monthNotes.filter(n => n.date.startsWith(dayStr)));
-            });
-          }
+// Actual days
+for (let d = 1; d <= daysInMonth; d++) {
+  const dayStr = String(d).padStart(2, "0");
+  const note = monthNotes.find(n => n.date.startsWith(dayStr));
+  const dayCell = document.createElement("div");
+  dayCell.className = "calendar-day" + (note ? " has-notes" : "");
+  dayCell.textContent = d;
 
-          calendar.appendChild(dayCell);
-        }
+  const isCurrentMonthYear =
+    String(today.getMonth() + 1).padStart(2, "0") === mm &&
+    String(today.getFullYear()) === yyyy;
+  if (isCurrentMonthYear && dayStr === todayStr) {
+    dayCell.classList.add("today");
+  }
+
+  if (note) {
+    dayCell.title = `${note.date} • ${note.session} • ${note.title}`;
+    dayCell.addEventListener("click", () => {
+      renderNotes(monthNotes.filter(n => n.date.startsWith(dayStr)));
+    });
+  }
+
+  calendar.appendChild(dayCell);
+}
+
 
         calendarBody.appendChild(calendar);
         card.appendChild(calendarBody);
