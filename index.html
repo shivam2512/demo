@@ -123,10 +123,30 @@
   <script>
     let allNotes = [];
 
+    const monthMap = {
+      JAN: "01", FEB: "02", MAR: "03", APR: "04", MAY: "05", JUN: "06",
+      JUL: "07", AUG: "08", SEP: "09", OCT: "10", NOV: "11", DEC: "12"
+    };
+
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+    function parseNoteDate(str) {
+      // DD-MMM-YYYY
+      const [d, mText, y] = str.split("-");
+      const mNum = Number(monthMap[mText.toUpperCase()]);
+      return { day: d, monthNum: mNum, monthText: mText.toUpperCase(), year: y };
+    }
+
+    function toJSDate(str) {
+      const { day, monthNum, year } = parseNoteDate(str);
+      return new Date(Number(year), monthNum - 1, Number(day));
+    }
+
     async function loadNotes() {
       try {
         const res = await fetch("notes.json");
         const notes = await res.json();
+
         allNotes = notes;
         renderCalendar(notes);
         updateLatestNotification();
@@ -140,11 +160,11 @@
       const container = document.getElementById("calendarContainer");
       container.innerHTML = "";
 
-      // Group notes by month-year (expects date as DD-MM-YYYY)
+      // Group notes by month-year (from DD-MMM-YYYY)
       const groups = {};
       notes.forEach(n => {
-        const [day, month, year] = n.date.split("-");
-        const key = `${month}-${year}`;
+        const { monthNum, year } = parseNoteDate(n.date);
+        const key = `${String(monthNum).padStart(2,"0")}-${year}`;
         if (!groups[key]) groups[key] = [];
         groups[key].push(n);
       });
@@ -158,45 +178,36 @@
         return bKey - aKey;
       });
 
+      const today = new Date();
+      const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
+      const currentYear = String(today.getFullYear());
+      const todayStr = String(today.getDate()).padStart(2, "0");
+
       const row = document.createElement("div");
       row.className = "row";
 
-      const today = new Date();
-      const todayStr = String(today.getDate()).padStart(2, "0"); // DD
-      const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
-      const currentYear = String(today.getFullYear());
-
       groupKeys.forEach(monthYear => {
-        const monthNotes = groups[monthYear];
         const [mm, yyyy] = monthYear.split("-");
         const monthIndex = Number(mm) - 1;
         const yearNum = Number(yyyy);
+        const monthNotes = groups[monthYear];
 
-        // Safe month name rendering
-        const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-        const monthName = monthNames[monthIndex] || `Month ${mm}`;
-
-        // Actual month lengths
+        // Actual month lengths and Monday-first alignment
         const daysInMonth = new Date(yearNum, monthIndex + 1, 0).getDate();
-
-        // Monday-first alignment: convert JS Sunday=0 to 7
-        let firstDay = new Date(yearNum, monthIndex, 1).getDay();
-        firstDay = firstDay === 0 ? 7 : firstDay; // Monday=1 ... Sunday=7
+        let firstDay = new Date(yearNum, monthIndex, 1).getDay(); // 0=Sun..6=Sat
+        firstDay = firstDay === 0 ? 7 : firstDay; // shift Sunday to 7 (Mon-first grid)
 
         const col = document.createElement("div");
-        col.className = "col-md-6 mb-4"; // two calendars per row
+        col.className = "col-md-6 mb-4";
 
-        // Card wrapper
         const card = document.createElement("div");
         card.className = "card shadow-lg";
 
-        // Header with gradient and month name
         const header = document.createElement("div");
         header.className = "card-header text-white fw-bold month-header";
-        header.textContent = `${monthName} ${yearNum}`;
+        header.textContent = `${monthNames[monthIndex]} ${yearNum}`;
         card.appendChild(header);
 
-        // Body
         const calendarBody = document.createElement("div");
         calendarBody.className = "card-body";
 
@@ -220,45 +231,41 @@
         for (let i = 1; i < firstDay; i++) {
           const emptyCell = document.createElement("div");
           emptyCell.className = "calendar-day";
-          emptyCell.textContent = "";
           calendar.appendChild(emptyCell);
         }
 
         // Actual days of month
         for (let d = 1; d <= daysInMonth; d++) {
           const dayStr = String(d).padStart(2, "0");
-          const note = monthNotes.find(n => n.date.startsWith(dayStr));
+
+          // Month groups already match the month/year, so only match the day within monthNotes
+          const hasNote = monthNotes.some(n => parseNoteDate(n.date).day === dayStr);
+
           const dayCell = document.createElement("div");
-          dayCell.className = "calendar-day" + (note ? " has-notes" : "");
+          dayCell.className = "calendar-day" + (hasNote ? " has-notes" : "");
           dayCell.textContent = d;
 
-          // Mark today if month-year matches current
+          // Mark today
           const isCurrentMonthYear = (currentMonth === mm && currentYear === yyyy);
           if (isCurrentMonthYear && dayStr === todayStr) {
             dayCell.classList.add("today");
           }
 
-          if (note) {
-            dayCell.title = `${note.date} • ${note.session} • ${note.title}`;
-            dayCell.addEventListener("click", () => {
-              renderNotes(monthNotes.filter(n => n.date.startsWith(dayStr)));
-            });
-          } else {
-            dayCell.addEventListener("click", () => {
-              renderNotes([]);
-            });
-          }
+          // Click to show notes for that day
+          dayCell.addEventListener("click", () => {
+            const filtered = monthNotes.filter(n => parseNoteDate(n.date).day === dayStr);
+            renderNotes(filtered);
+          });
 
           calendar.appendChild(dayCell);
         }
 
-        // Fill trailing blanks to complete the week row
+        // Fill trailing blanks to complete week row
         const totalCells = (firstDay - 1) + daysInMonth;
         const trailing = (7 - (totalCells % 7)) % 7;
         for (let i = 0; i < trailing; i++) {
           const emptyCell = document.createElement("div");
           emptyCell.className = "calendar-day";
-          emptyCell.textContent = "";
           calendar.appendChild(emptyCell);
         }
 
@@ -337,20 +344,14 @@
       setTimeout(() => notif.remove(), 5000);
     }
 
-    // Persistent latest notes banner
+    // Persistent latest notes banner (DD-MMM-YYYY friendly)
     function updateLatestNotification() {
       if (!allNotes.length) {
         document.getElementById("latestNotification").textContent = "No notes available yet.";
         return;
       }
 
-      // Sort by date descending (expects DD-MM-YYYY)
-      const sorted = [...allNotes].sort((a, b) => {
-        const dateA = new Date(a.date.split("-").reverse().join("-")); // YYYY-MM-DD
-        const dateB = new Date(b.date.split("-").reverse().join("-"));
-        return dateB - dateA;
-      });
-
+      const sorted = [...allNotes].sort((a, b) => toJSDate(b.date) - toJSDate(a.date));
       const latestDate = sorted[0].date;
       const latestDayNotes = allNotes.filter(n => n.date === latestDate);
       const latestNote = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
