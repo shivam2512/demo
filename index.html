@@ -127,7 +127,6 @@
       try {
         const res = await fetch("notes.json");
         const notes = await res.json();
-
         allNotes = notes;
         renderCalendar(notes);
         updateLatestNotification();
@@ -146,8 +145,17 @@
       notes.forEach(n => {
         const [day, month, year] = n.date.split("-");
         const key = `${month}-${year}`;
-        groups[key] = groups[key] || [];
+        if (!groups[key]) groups[key] = [];
         groups[key].push(n);
+      });
+
+      // Sort groups by year-month descending (latest first)
+      const groupKeys = Object.keys(groups).sort((a, b) => {
+        const [am, ay] = a.split("-").map(Number);
+        const [bm, by] = b.split("-").map(Number);
+        const aKey = new Date(ay, am - 1, 1).getTime();
+        const bKey = new Date(by, bm - 1, 1).getTime();
+        return bKey - aKey;
       });
 
       const row = document.createElement("div");
@@ -155,18 +163,25 @@
 
       const today = new Date();
       const todayStr = String(today.getDate()).padStart(2, "0"); // DD
+      const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
+      const currentYear = String(today.getFullYear());
 
-      Object.keys(groups).forEach(monthYear => {
+      groupKeys.forEach(monthYear => {
         const monthNotes = groups[monthYear];
         const [mm, yyyy] = monthYear.split("-");
-        const monthIndex = parseInt(mm, 10) - 1;
-        const yearNum = parseInt(yyyy, 10);
+        const monthIndex = Number(mm) - 1;
+        const yearNum = Number(yyyy);
 
+        // Safe month name rendering
+        const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        const monthName = monthNames[monthIndex] || `Month ${mm}`;
+
+        // Actual month lengths
         const daysInMonth = new Date(yearNum, monthIndex + 1, 0).getDate();
 
-        // JS getDay(): Sunday=0 ... Saturday=6. We want Monday-first grid.
+        // Monday-first alignment: convert JS Sunday=0 to 7
         let firstDay = new Date(yearNum, monthIndex, 1).getDay();
-        firstDay = firstDay === 0 ? 7 : firstDay; // shift Sunday to 7, Monday=1
+        firstDay = firstDay === 0 ? 7 : firstDay; // Monday=1 ... Sunday=7
 
         const col = document.createElement("div");
         col.className = "col-md-6 mb-4"; // two calendars per row
@@ -178,8 +193,7 @@
         // Header with gradient and month name
         const header = document.createElement("div");
         header.className = "card-header text-white fw-bold month-header";
-        const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-        header.textContent = `${monthNames[monthIndex]} ${yearNum}`;
+        header.textContent = `${monthName} ${yearNum}`;
         card.appendChild(header);
 
         // Body
@@ -219,9 +233,7 @@
           dayCell.textContent = d;
 
           // Mark today if month-year matches current
-          const isCurrentMonthYear =
-            String(today.getMonth() + 1).padStart(2, "0") === mm &&
-            String(today.getFullYear()) === yyyy;
+          const isCurrentMonthYear = (currentMonth === mm && currentYear === yyyy);
           if (isCurrentMonthYear && dayStr === todayStr) {
             dayCell.classList.add("today");
           }
@@ -232,7 +244,6 @@
               renderNotes(monthNotes.filter(n => n.date.startsWith(dayStr)));
             });
           } else {
-            // Clear notes when clicking an empty day in the current month
             dayCell.addEventListener("click", () => {
               renderNotes([]);
             });
@@ -241,7 +252,7 @@
           calendar.appendChild(dayCell);
         }
 
-        // Fill trailing blanks to complete week row
+        // Fill trailing blanks to complete the week row
         const totalCells = (firstDay - 1) + daysInMonth;
         const trailing = (7 - (totalCells % 7)) % 7;
         for (let i = 0; i < trailing; i++) {
@@ -333,6 +344,7 @@
         return;
       }
 
+      // Sort by date descending (expects DD-MM-YYYY)
       const sorted = [...allNotes].sort((a, b) => {
         const dateA = new Date(a.date.split("-").reverse().join("-")); // YYYY-MM-DD
         const dateB = new Date(b.date.split("-").reverse().join("-"));
@@ -344,7 +356,7 @@
       const latestNote = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
 
       document.getElementById("latestNotification").textContent =
-        `📢 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
+        `🔔 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
     }
 
     loadNotes();
