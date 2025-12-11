@@ -1,366 +1,386 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Practice Session Notes</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SQL Assignment Editor — Practice Session Notes</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
   <style>
-    pre {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      font-family: monospace;
-    }
-
-    /* Calendar container */
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    /* Weekday labels */
-    .weekday {
-      font-weight: 600;
-      text-align: center;
-      color: #495057;
-      padding: 6px 0;
-      background: #f8f9fa;
-      border-radius: 0.5rem;
-      border: 1px solid #e9ecef;
-    }
-
-    /* Day cell styling */
-    .calendar-day {
-      border: 1px solid #dee2e6;
-      padding: 12px;
-      text-align: center;
-      cursor: pointer;
-      min-height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 0.6rem;
-      background-color: #ffffff;
-      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
-      font-weight: 500;
-    }
-
-    /* Has notes highlight */
-    .calendar-day.has-notes {
-      background: linear-gradient(135deg, #d1e7dd, #b6e0c2);
-      color: #0f5132;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
-      border-color: #b6e0c2;
-    }
-
-    /* Hover effect */
-    .calendar-day:hover {
-      transform: translateY(-2px);
-      background: linear-gradient(135deg, #f8d7da, #f5c2c7);
-      color: #842029;
-      box-shadow: 0 6px 16px rgba(220, 53, 69, 0.25);
-      border-color: #f5c2c7;
-    }
-
-    /* Today highlight */
-    .calendar-day.today {
-      background: linear-gradient(135deg, #fff3cd, #ffe69c);
-      color: #664d03;
-      border-color: #ffe69c;
-      box-shadow: 0 3px 10px rgba(255, 193, 7, 0.25);
-      font-weight: 700;
-    }
-
-    /* Card header gradient */
-    .month-header {
-      background: linear-gradient(90deg, #0d6efd, #6610f2);
-    }
-
-    /* Subtle container spacing */
-    #calendarContainer .card {
-      border: none;
-      overflow: hidden;
-    }
+    body { background:#f7fbff }
+    pre { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
+    .editor { height: 260px; font-family: monospace; }
+    table.results td, table.results th { vertical-align: middle; }
+    .small-muted { font-size:0.85rem; color:#6c757d }
   </style>
 </head>
 <body>
   <nav class="navbar navbar-dark bg-dark">
-    <div class="container">
-      <span class="navbar-brand">Practice Session Notes</span>
+    <div class="container-fluid">
+      <span class="navbar-brand">Practice Session Notes — SQL Assignment Editor</span>
+      <button class="btn btn-sm btn-outline-light" id="logoutBtn" style="display:none">Logout</button>
     </div>
   </nav>
 
-  <!-- Persistent latest notes banner -->
-  <div id="latestNotification" class="alert alert-info text-center mb-0">
-    Latest notes: Loading…
-  </div>
-
   <main class="container py-4">
-    <!-- Download buttons -->
-    <div class="mb-3 d-flex gap-2 flex-wrap">
-      <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download Afternoon Notes</button>
-      <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download Evening Notes</button>
-    </div>
+    <div id="app">
+      <!-- Login -->
+      <div id="loginView" class="card mx-auto" style="max-width:540px">
+        <div class="card-body">
+          <h5 class="card-title">Student login</h5>
+          <p class="small-muted">Enter any username to join. This demo stores session locally (no server). For production you need a backend.</p>
+          <div class="mb-3">
+            <input id="username" class="form-control" placeholder="Your name / roll no" />
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" id="loginBtn">Join</button>
+            <button class="btn btn-outline-secondary" id="demoBtn">Try demo student</button>
+          </div>
+        </div>
+      </div>
 
-    <!-- Calendar view -->
-    <div id="calendarContainer" class="mb-4"></div>
+      <!-- Assignment list -->
+      <div id="assignmentView" style="display:none">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5>Welcome, <span id="displayName"></span></h5>
+                <p class="small-muted">Select an assignment to start. You can run queries against the in-memory database. Your answers are auto-graded by comparing results.</p>
+                <hr />
+                <h6>Assignments</h6>
+                <div id="assignmentList" class="list-group"></div>
+                <hr />
+                <button class="btn btn-sm btn-outline-secondary mt-2" id="viewResultsBtn">View my past results</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-body">
+                <h6>Instructions</h6>
+                <ol class="small-muted">
+                  <li>Click an assignment → loads DB schema & test data.</li>
+                  <li>Write SQL in the editor and click <strong>Run</strong>.</li>
+                  <li>Click <strong>Submit Answer</strong> to lock result for the question.</li>
+                  <li>At the end click <strong>Finish Test</strong> to see your score.</li>
+                </ol>
+              </div>
+            </div>
+          </div>
 
-    <!-- Notes display -->
-    <div id="notesContainer"></div>
-    <div id="emptyState" class="text-center text-muted py-5 d-none">
-      <h5>No notes yet</h5>
-    </div>
+          <div class="col-md-8">
+            <div class="card mb-3">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                  <strong id="assignmentTitle">No assignment selected</strong>
+                  <div class="small-muted" id="assignmentMeta"></div>
+                </div>
+                <div>
+                  <button id="resetDbBtn" class="btn btn-sm btn-outline-secondary me-1" title="Reload DB for this assignment">Reset DB</button>
+                  <button id="finishBtn" class="btn btn-success btn-sm">Finish Test</button>
+                </div>
+              </div>
 
-    <!-- Clear view button -->
-    <div class="text-center mt-3">
-      <button class="btn btn-outline-secondary d-none" id="clearViewBtn" onclick="clearNotesView()">Clear View</button>
+              <div class="card-body">
+                <div class="mb-2">
+                  <label class="form-label">Database preview (tables)</label>
+                  <div id="schemaPreview" class="small-muted border rounded p-2 mb-2" style="max-height:120px;overflow:auto;background:#fff"></div>
+                </div>
+
+                <label class="form-label">SQL Editor</label>
+                <textarea id="sqlEditor" class="form-control editor" placeholder="Write your SQL here..."></textarea>
+
+                <div class="mt-2 d-flex gap-2">
+                  <button id="runBtn" class="btn btn-primary">Run</button>
+                  <button id="submitBtn" class="btn btn-outline-primary">Submit Answer</button>
+                  <button id="downloadBtn" class="btn btn-outline-secondary">Download Results</button>
+                </div>
+
+                <div id="runOutput" class="mt-3"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h6>Grading / Status</h6>
+                <div id="gradingStatus" class="small-muted">No submissions yet.</div>
+                <div id="detailedResults" class="mt-3"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Results history modal-like area -->
+      <div id="historyView" style="display:none">
+        <div class="card">
+          <div class="card-body">
+            <h5>Past results for <span id="historyName"></span></h5>
+            <div id="historyList"></div>
+            <div class="mt-3">
+              <button class="btn btn-secondary" id="backToAssignments">Back</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
+  <script src="https://sql.js.org/dist/sql-wasm.js"></script>
   <script>
-    let allNotes = [];
+    // ----- Demo assignments (simple) -----
+    const ASSIGNMENTS = [
+      {
+        id: 'A1',
+        title: 'Simple SELECT and JOIN',
+        description: 'Return customer name and city for orders with total > 50',
+        // tables: schema + inserts for initializing sqlite DB
+        schema: [
+          `CREATE TABLE customers(id INTEGER PRIMARY KEY, name TEXT, city TEXT);`,
+          `CREATE TABLE orders(id INTEGER PRIMARY KEY, customer_id INTEGER, total NUMERIC, created DATE);`,
+          `INSERT INTO customers VALUES(1,'Alice','Mumbai'),(2,'Bob','Delhi'),(3,'Charlie','Bengaluru');`,
+          `INSERT INTO orders VALUES(1,1,45,'2025-12-01'),(2,2,75,'2025-12-02'),(3,1,60,'2025-12-03');`
+        ],
+        // expected result rows (unordered)
+        expected: [{name:'Bob', city:'Delhi'},{name:'Alice', city:'Mumbai'}]
+      },
 
-    const monthMap = {
-      JAN: "01", FEB: "02", MAR: "03", APR: "04", MAY: "05", JUN: "06",
-      JUL: "07", AUG: "08", SEP: "09", OCT: "10", NOV: "11", DEC: "12"
-    };
+      {
+        id: 'A2',
+        title: 'Aggregation and GROUP BY',
+        description: 'List product and total sold quantity > 10',
+        schema: [
+          `CREATE TABLE products(id INTEGER PRIMARY KEY, name TEXT);`,
+          `CREATE TABLE sales(id INTEGER PRIMARY KEY, product_id INTEGER, qty INTEGER);`,
+          `INSERT INTO products VALUES(1,'Pen'),(2,'Pencil'),(3,'Notebook');`,
+          `INSERT INTO sales VALUES(1,1,5),(2,1,10),(3,2,3),(4,3,8),(5,1,1);`
+        ],
+        expected: [{name:'Pen', total:16}]
+      }
+    ];
 
-    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    // ----- App state -----
+    let SQL; // the initSqlJs module instance
+    let db;  // current in-memory DB for the selected assignment
+    let currentUser = null;
+    let currentAssignment = null;
+    const SUBMISSIONS_KEY = 'sql_assign_submissions_v1'; // localStorage key
 
-    function parseNoteDate(str) {
-      // DD-MMM-YYYY
-      const [d, mText, y] = str.split("-");
-      const mNum = Number(monthMap[mText.toUpperCase()]);
-      return { day: d, monthNum: mNum, monthText: mText.toUpperCase(), year: y };
+    // Helpers for UI
+    const el = id => document.getElementById(id);
+
+    async function initSqlJsModule() {
+      if (window.initSqlJs === undefined) throw new Error('sql.js not loaded');
+      SQL = await initSqlJs({ locateFile: file => `https://sql.js.org/dist/${file}` });
     }
 
-    function toJSDate(str) {
-      const { day, monthNum, year } = parseNoteDate(str);
-      return new Date(Number(year), monthNum - 1, Number(day));
+    function resetDBFromAssignment(a) {
+      if (!a) return;
+      if (!SQL) { alert('sql.js not ready'); return; }
+      db = new SQL.Database();
+      a.schema.forEach(s => db.run(s));
+      renderSchemaPreview(a);
+      showMessage('DB loaded for ' + a.id);
     }
 
-    async function loadNotes() {
+    function renderSchemaPreview(a) {
+      const div = el('schemaPreview');
+      const tables = [];
       try {
-        const res = await fetch("notes.json");
-        const notes = await res.json();
+        const rows = db.exec("SELECT name, type, sql FROM sqlite_master WHERE type IN ('table','view')");
+        if (rows && rows[0]) {
+          const cols = rows[0].columns; const values = rows[0].values;
+          values.forEach(r => tables.push({name:r[0], sql:r[2]}));
+        }
+      } catch(e) {}
+      div.innerHTML = tables.map(t => `<div><strong>${t.name}</strong><pre class="mb-0 small">${t.sql}</pre></div>`).join('<hr/>');
+    }
 
-        allNotes = notes;
-        renderCalendar(notes);
-        updateLatestNotification();
+    function populateAssignmentList() {
+      const list = el('assignmentList'); list.innerHTML = '';
+      ASSIGNMENTS.forEach(a => {
+        const btn = document.createElement('button');
+        btn.className = 'list-group-item list-group-item-action';
+        btn.textContent = `${a.id} — ${a.title}`;
+        btn.onclick = () => selectAssignment(a.id);
+        list.appendChild(btn);
+      });
+    }
+
+    function selectAssignment(id) {
+      const a = ASSIGNMENTS.find(x => x.id === id);
+      if (!a) return;
+      currentAssignment = a;
+      el('assignmentTitle').textContent = `${a.id} - ${a.title}`;
+      el('assignmentMeta').textContent = a.description;
+      resetDBFromAssignment(a);
+      el('sqlEditor').value = '-- Write SQL that produces the expected result\n';
+      el('runOutput').innerHTML = '';
+      el('gradingStatus').textContent = 'Not submitted yet.';
+      renderDetailedResults();
+    }
+
+    function runSQL() {
+      const q = el('sqlEditor').value.trim();
+      if (!q) return showMessage('Write a query first');
+      try {
+        const res = db.exec(q);
+        if (!res || !res.length) {
+          el('runOutput').innerHTML = '<div class="alert alert-warning">No rows returned.</div>';
+          return null;
+        }
+        // render first resultset
+        const r = res[0];
+        const table = buildHtmlTable(r.columns, r.values);
+        el('runOutput').innerHTML = `<div class="small-muted mb-2">Returned ${r.values.length} rows</div>` + table;
+        return r;
       } catch (err) {
-        console.error("Error loading notes:", err);
-        document.getElementById("latestNotification").textContent = "Failed to load notes.";
+        el('runOutput').innerHTML = `<div class="alert alert-danger">Error: ${err.toString()}</div>`;
+        return null;
       }
     }
 
-    function renderCalendar(notes) {
-      const container = document.getElementById("calendarContainer");
-      container.innerHTML = "";
-
-      // Group notes by month-year (from DD-MMM-YYYY)
-      const groups = {};
-      notes.forEach(n => {
-        const { monthNum, year } = parseNoteDate(n.date);
-        const key = `${String(monthNum).padStart(2,"0")}-${year}`;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(n);
+    function buildHtmlTable(cols, values) {
+      let html = '<div class="table-responsive"><table class="table table-sm table-bordered results"><thead><tr>';
+      cols.forEach(c => html += `<th>${escapeHtml(c)}</th>`);
+      html += '</tr></thead><tbody>';
+      values.forEach(row => {
+        html += '<tr>' + row.map(cell => `<td>${escapeHtml(String(cell === null ? 'NULL' : cell))}</td>`).join('') + '</tr>';
       });
-
-      // Sort groups by year-month descending (latest first)
-      const groupKeys = Object.keys(groups).sort((a, b) => {
-        const [am, ay] = a.split("-").map(Number);
-        const [bm, by] = b.split("-").map(Number);
-        const aKey = new Date(ay, am - 1, 1).getTime();
-        const bKey = new Date(by, bm - 1, 1).getTime();
-        return bKey - aKey;
-      });
-
-      const today = new Date();
-      const currentMonth = String(today.getMonth() + 1).padStart(2, "0");
-      const currentYear = String(today.getFullYear());
-      const todayStr = String(today.getDate()).padStart(2, "0");
-
-      const row = document.createElement("div");
-      row.className = "row";
-
-      groupKeys.forEach(monthYear => {
-        const [mm, yyyy] = monthYear.split("-");
-        const monthIndex = Number(mm) - 1;
-        const yearNum = Number(yyyy);
-        const monthNotes = groups[monthYear];
-
-        // Actual month lengths and Monday-first alignment
-        const daysInMonth = new Date(yearNum, monthIndex + 1, 0).getDate();
-        let firstDay = new Date(yearNum, monthIndex, 1).getDay(); // 0=Sun..6=Sat
-        firstDay = firstDay === 0 ? 7 : firstDay; // shift Sunday to 7 (Mon-first grid)
-
-        const col = document.createElement("div");
-        col.className = "col-md-6 mb-4";
-
-        const card = document.createElement("div");
-        card.className = "card shadow-lg";
-
-        const header = document.createElement("div");
-        header.className = "card-header text-white fw-bold month-header";
-        header.textContent = `${monthNames[monthIndex]} ${yearNum}`;
-        card.appendChild(header);
-
-        const calendarBody = document.createElement("div");
-        calendarBody.className = "card-body";
-
-        // Weekday labels (Mon-first)
-        const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-        const weekdayRow = document.createElement("div");
-        weekdayRow.className = "calendar";
-        weekdays.forEach(w => {
-          const wd = document.createElement("div");
-          wd.className = "weekday";
-          wd.textContent = w;
-          weekdayRow.appendChild(wd);
-        });
-        calendarBody.appendChild(weekdayRow);
-
-        // Calendar grid
-        const calendar = document.createElement("div");
-        calendar.className = "calendar";
-
-        // Empty cells before first day to align start
-        for (let i = 1; i < firstDay; i++) {
-          const emptyCell = document.createElement("div");
-          emptyCell.className = "calendar-day";
-          calendar.appendChild(emptyCell);
-        }
-
-        // Actual days of month
-        for (let d = 1; d <= daysInMonth; d++) {
-          const dayStr = String(d).padStart(2, "0");
-
-          // Month groups already match the month/year, so only match the day within monthNotes
-          const hasNote = monthNotes.some(n => parseNoteDate(n.date).day === dayStr);
-
-          const dayCell = document.createElement("div");
-          dayCell.className = "calendar-day" + (hasNote ? " has-notes" : "");
-          dayCell.textContent = d;
-
-          // Mark today
-          const isCurrentMonthYear = (currentMonth === mm && currentYear === yyyy);
-          if (isCurrentMonthYear && dayStr === todayStr) {
-            dayCell.classList.add("today");
-          }
-
-          // Click to show notes for that day
-          dayCell.addEventListener("click", () => {
-            const filtered = monthNotes.filter(n => parseNoteDate(n.date).day === dayStr);
-            renderNotes(filtered);
-          });
-
-          calendar.appendChild(dayCell);
-        }
-
-        // Fill trailing blanks to complete week row
-        const totalCells = (firstDay - 1) + daysInMonth;
-        const trailing = (7 - (totalCells % 7)) % 7;
-        for (let i = 0; i < trailing; i++) {
-          const emptyCell = document.createElement("div");
-          emptyCell.className = "calendar-day";
-          calendar.appendChild(emptyCell);
-        }
-
-        calendarBody.appendChild(calendar);
-        card.appendChild(calendarBody);
-        col.appendChild(card);
-        row.appendChild(col);
-      });
-
-      container.appendChild(row);
+      html += '</tbody></table></div>';
+      return html;
     }
 
-    function renderNotes(notes) {
-      const container = document.getElementById("notesContainer");
-      const emptyState = document.getElementById("emptyState");
-      const clearBtn = document.getElementById("clearViewBtn");
-      container.innerHTML = "";
+    function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-      if (!notes.length) {
-        emptyState.classList.remove("d-none");
-        clearBtn.classList.add("d-none");
-        return;
-      }
-      emptyState.classList.add("d-none");
-
-      notes.forEach(n => {
-        const card = document.createElement("div");
-        card.className = "card mb-3 shadow-sm";
-        card.innerHTML = `
-          <div class="card-header bg-success text-white">
-            <strong>${n.date}</strong> – ${n.session} – ${n.title}
-          </div>
-          <div class="card-body">
-            <pre class="bg-light p-3 rounded"><code>${n.body}</code></pre>
-          </div>
-        `;
-        container.appendChild(card);
+    function compareResults(expected, actual) {
+      // expected: array of objects with key:value
+      // actual: {columns:[], values:[]}
+      if (!actual) return false;
+      const cols = actual.columns.map(c => c.toString());
+      const rows = actual.values.map(r => {
+        const obj = {}; cols.forEach((c,i) => { obj[c] = r[i]; });
+        return obj;
       });
-
-      clearBtn.classList.remove("d-none");
+      // compare as unordered sets of JSON strings (normalize types to string)
+      const norm = arr => arr.map(o => JSON.stringify(Object.keys(o).sort().reduce((acc,k)=>{acc[k]=String(o[k]);return acc;},{}))).sort();
+      const eNorm = norm(expected);
+      const aNorm = norm(rows);
+      if (eNorm.length !== aNorm.length) return false;
+      for (let i=0;i<eNorm.length;i++) if (eNorm[i] !== aNorm[i]) return false;
+      return true;
     }
 
-    function clearNotesView() {
-      document.getElementById("notesContainer").innerHTML = "";
-      document.getElementById("emptyState").classList.add("d-none");
-      document.getElementById("clearViewBtn").classList.add("d-none");
+    function submitAnswer() {
+      if (!currentAssignment) return showMessage('Select an assignment first');
+      const runRes = runSQL();
+      if (!runRes) return showMessage('Run a SELECT query that returns rows before submitting');
+      const ok = compareResults(currentAssignment.expected, runRes);
+      saveSubmission(currentUser, currentAssignment.id, el('sqlEditor').value, ok, runRes);
+      el('gradingStatus').textContent = ok ? 'Correct ✅' : 'Incorrect ❌';
+      renderDetailedResults();
+      showMessage('Answer submitted.');
     }
 
-    // Download SQL file by session
-    function downloadSQLFile(session, filename) {
-      const sessionNotes = allNotes.filter(n => n.session === session);
-      const sqlContent = sessionNotes
-        .map(n => `-- ${n.date} : ${n.title}\n${n.body}\n\n`)
-        .join("");
-      const blob = new Blob([sqlContent], { type: "text/sql" });
+    function saveSubmission(user, aid, sql, correct, runRes) {
+      const all = JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '[]');
+      const rec = { user, aid, sql, correct, timestamp: new Date().toISOString(), result: runRes };
+      all.push(rec);
+      localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(all));
+    }
+
+    function loadUserSubmissions(user) {
+      const all = JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '[]');
+      return all.filter(r => r.user === user);
+    }
+
+    function renderDetailedResults() {
+      const area = el('detailedResults'); area.innerHTML = '';
+      const subs = loadUserSubmissions(currentUser).filter(s=>s.aid === (currentAssignment?currentAssignment.id: null));
+      if (!subs.length) return area.innerHTML = '<div class="small-muted">No submissions for this assignment yet.</div>';
+      const list = subs.map(s => `<div class="mb-2"><strong>${new Date(s.timestamp).toLocaleString()}</strong> — ${s.correct?'<span class="text-success">Correct</span>':'<span class="text-danger">Incorrect</span>'}<pre class="mt-1 mb-0 small">${escapeHtml(s.sql)}</pre></div>`).join('');
+      area.innerHTML = list;
+    }
+
+    function showMessage(msg, ttl=3000) {
+      const n = document.createElement('div'); n.className='alert alert-info'; n.textContent=msg;
+      document.body.prepend(n); setTimeout(()=>n.remove(), ttl);
+    }
+
+    function finishTest() {
+      // compute score across all assignments by latest submission per assignment
+      const subs = loadUserSubmissions(currentUser);
+      if (!subs.length) return showMessage('No submissions found.');
+      const byAid = {};
+      subs.forEach(s => { byAid[s.aid] = s; });
+      const aids = Object.keys(byAid);
+      let correct = 0; aids.forEach(aid=>{ if (byAid[aid].correct) correct++; });
+      const score = Math.round((correct / ASSIGNMENTS.length) * 100);
+      // show modal-like result
+      const detail = aids.map(aid => `• ${aid}: ${byAid[aid].correct ? 'Correct' : 'Incorrect'}`).join('\n');
+      el('gradingStatus').textContent = `Score: ${score}% (${correct}/${ASSIGNMENTS.length})`;
+      el('detailedResults').innerHTML = `<pre>${escapeHtml(detail)}</pre>`;
+      showMessage(`Test finished — Score ${score}%`);
+    }
+
+    function downloadResults() {
+      const data = loadUserSubmissions(currentUser);
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
       const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      URL.revokeObjectURL(url);
-
-      showNotification(`${filename} has been updated and downloaded!`);
+      const a = document.createElement('a'); a.href = url; a.download = `${currentUser || 'student'}-results.json`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      showMessage('Results downloaded');
     }
 
-    // Temporary notification (auto-hide)
-    function showNotification(message) {
-      const notif = document.createElement("div");
-      notif.className = "alert alert-success text-center";
-      notif.textContent = message;
-      document.body.prepend(notif);
-      setTimeout(() => notif.remove(), 5000);
+    // Login flows
+    function loginAs(name) {
+      currentUser = name || ('student_' + Math.floor(Math.random()*1000));
+      el('displayName').textContent = currentUser;
+      el('loginView').style.display = 'none';
+      el('assignmentView').style.display = '';
+      el('logoutBtn').style.display = '';
+      populateAssignmentList();
+      // pre-init first assignment visually
+      selectAssignment(ASSIGNMENTS[0].id);
     }
 
-    // Persistent latest notes banner (DD-MMM-YYYY friendly)
-    function updateLatestNotification() {
-      if (!allNotes.length) {
-        document.getElementById("latestNotification").textContent = "No notes available yet.";
-        return;
-      }
-
-      const sorted = [...allNotes].sort((a, b) => toJSDate(b.date) - toJSDate(a.date));
-      const latestDate = sorted[0].date;
-      const latestDayNotes = allNotes.filter(n => n.date === latestDate);
-      const latestNote = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
-
-      document.getElementById("latestNotification").textContent =
-        `🔔 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
+    function logout() {
+      currentUser = null;
+      el('loginView').style.display = '';
+      el('assignmentView').style.display = 'none';
+      el('logoutBtn').style.display = 'none';
     }
 
-    loadNotes();
+    // event bindings
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await initSqlJsModule();
+      } catch(e) { alert('Failed to load sql.js: '+e); }
+
+      el('loginBtn').onclick = () => {
+        const u = el('username').value.trim(); if (!u) return showMessage('Enter username');
+        loginAs(u);
+      };
+      el('demoBtn').onclick = () => loginAs('demo_student');
+      el('logoutBtn').onclick = logout;
+      el('runBtn').onclick = runSQL;
+      el('submitBtn').onclick = submitAnswer;
+      el('resetDbBtn').onclick = () => { if (currentAssignment) resetDBFromAssignment(currentAssignment); };
+      el('finishBtn').onclick = finishTest;
+      el('downloadBtn').onclick = downloadResults;
+      el('viewResultsBtn').onclick = () => {
+        el('assignmentView').style.display = 'none';
+        el('historyView').style.display = '';
+        el('historyName').textContent = currentUser;
+        const h = loadUserSubmissions(currentUser);
+        el('historyList').innerHTML = h.length? h.map(r=>`<div class="mb-2"><strong>${r.aid}</strong> — ${new Date(r.timestamp).toLocaleString()} — ${r.correct?'<span class="text-success">Correct</span>':'<span class="text-danger">Incorrect</span>'}</div>`).join('') : '<div class="small-muted">No results yet</div>';
+      };
+      el('backToAssignments').onclick = () => { el('historyView').style.display = 'none'; el('assignmentView').style.display = ''; };
+
+      // small UX: allow Ctrl+Enter to run
+      el('sqlEditor').addEventListener('keydown', (e)=>{ if (e.ctrlKey && e.key === 'Enter') runSQL(); });
+    });
+
   </script>
 </body>
 </html>
