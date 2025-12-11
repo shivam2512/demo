@@ -1,111 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Notes + SQL Assignment</title>
+  <meta charset="UTF-8">
+  <title>Practice Notes + Assignments</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-    h2 { margin-top: 30px; }
-    .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    textarea { width: 100%; height: 120px; padding: 10px; }
-    button { padding: 10px 14px; margin-top: 10px; cursor: pointer; }
-    .result-box { background: #fafafa; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
-    pre { background:#eee; padding:10px; border-radius:5px; }
-    .correct { color: green; font-weight: bold; }
-    .wrong { color: red; font-weight: bold; }
+    pre { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
+    .calendar { display: grid; grid-template-columns: repeat(7,1fr); gap:6px; margin-top:10px; }
+    .weekday { font-weight:600; text-align:center; background:#f8f9fa; padding:6px 0; border-radius:6px; }
+    .calendar-day { border:1px solid #dee2e6; padding:12px; text-align:center; cursor:pointer; min-height:70px; display:flex; align-items:center; justify-content:center; border-radius:10px; }
+    .calendar-day.has-notes { background:#d1e7dd; }
+    .calendar-day.today { background:#fff3cd; }
+    .assignment-box { border:1px solid #dee2e6; padding:20px; border-radius:10px; background:#ffffff; }
   </style>
 </head>
 <body>
-
-  <!-- ========================================= -->
-  <!-- ORIGINAL NOTES FEATURE (UNTOUCHED)        -->
-  <!-- ========================================= -->
-  <div class="section">
-    <h2>📘 Practice Notes (Original Feature)</h2>
-    <textarea id="notesInput" placeholder="Write your notes here..."></textarea>
-    <button onclick="saveNotes()">Save Notes</button>
-    <h3>Saved Notes:</h3>
-    <div id="notesList"></div>
-  </div>
-
-  <!-- ========================================= -->
-  <!-- SQL ASSIGNMENT FEATURE (SECOND FEATURE)   -->
-  <!-- ========================================= -->
-  <div class="section">
-    <h2>📝 SQL Assignment</h2>
-
-    <div>
-      <strong>Question:</strong>
-      <div id="questionBox">Write an SQL query to select all customers whose age is greater than 25</div>
+<nav class="navbar navbar-dark bg-dark navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand" href="#">Practice Notes</a>
+    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="#notesSection">Notes</a></li>
+        <li class="nav-item"><a class="nav-link" href="#assignSection">Assignments</a></li>
+      </ul>
     </div>
-
-    <textarea id="sqlInput" placeholder="Write your SQL answer here..."></textarea>
-    <button onclick="submitAssignment()">Submit Answer</button>
-
-    <div id="assignmentResult" class="result-box" style="margin-top:20px;"></div>
-
-    <h3>Overall Performance:</h3>
-    <div id="performanceBox" class="result-box"></div>
   </div>
+</nav>
+
+<div id="latestNotification" class="alert alert-info text-center mb-0">Latest notes: Loading…</div>
+
+<!-- NOTES SECTION -->
+<section id="notesSection" class="container py-4">
+  <div class="mb-3 d-flex gap-2 flex-wrap">
+    <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download Afternoon Notes</button>
+    <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download Evening Notes</button>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <button class="btn btn-outline-secondary" onclick="prevMonth()">← Previous</button>
+    <h4 id="monthLabel" class="fw-bold mb-0"></h4>
+    <button class="btn btn-outline-secondary" onclick="nextMonth()">Next →</button>
+  </div>
+
+  <div id="calendarContainer" class="mb-4"></div>
+  <div id="notesContainer"></div>
+  <div id="emptyState" class="text-center text-muted py-5 d-none"><h5>No notes yet</h5></div>
+  <div class="text-center mt-3"><button class="btn btn-outline-secondary d-none" id="clearViewBtn" onclick="clearNotesView()">Clear View</button></div>
+</section>
+
+<!-- ASSIGNMENT SECTION -->
+<section id="assignSection" class="container py-4">
+  <h2 class="mb-3">📝 SQL Assignments</h2>
+  <div class="assignment-box">
+    <h5><strong>Question:</strong></h5>
+    <div id="questionBox">Write an SQL query to select all customers whose age is greater than 25.</div>
+    <textarea id="sqlInput" class="form-control mt-3" placeholder="Write your SQL here..."></textarea>
+    <button class="btn btn-primary mt-3" onclick="submitAssignment()">Submit</button>
+
+    <div id="assignmentResult" class="mt-4"></div>
+
+    <h4 class="mt-4">Overall Performance:</h4>
+    <div id="performanceBox" class="border p-3 rounded"></div>
+  </div>
+</section>
 
 <script>
-/* ===================== NOTES FEATURE (UNTOUCHED) ===================== */
-let notes = JSON.parse(localStorage.getItem("notesData") || "[]");
-
-function saveNotes() {
-  const text = document.getElementById("notesInput").value.trim();
-  if (!text) return alert("Write something!");
-
-  notes.push({ text, time: new Date().toLocaleString() });
-  localStorage.setItem("notesData", JSON.stringify(notes));
-  loadNotes();
-  document.getElementById("notesInput").value = "";
-}
-
-function loadNotes() {
-  let html = notes.map(n => `<div><strong>${n.time}</strong><br>${n.text}<hr></div>`).join('');
-  document.getElementById("notesList").innerHTML = html;
-}
-
+// ---- Notes System (unchanged) ----
+let allNotes=[]; let currentMonthIndex,currentYear;
+const monthMap={JAN:"01",FEB:"02",MAR:"03",APR:"04",MAY:"05",JUN:"06",JUL:"07",AUG:"08",SEP:"09",OCT:"10",NOV:"11",DEC:"12"};
+const monthNames=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function parseNoteDate(str){const[d,m,y]=str.split("-");return{day:d,monthNum:Number(monthMap[m]),year:y};}
+function toJSDate(str){const{day,monthNum,year}=parseNoteDate(str);return new Date(Number(year),monthNum-1,Number(day));}
+async function loadNotes(){const res=await fetch("notes.json");allNotes=await res.json();const t=new Date();currentMonthIndex=t.getMonth();currentYear=t.getFullYear();renderCalendar();updateLatestNotification();}
+function renderCalendar(){const c=document.getElementById("calendarContainer");c.innerHTML="";document.getElementById("monthLabel").textContent=`${monthNames[currentMonthIndex]} ${currentYear}`;const daysInMonth=new Date(currentYear,currentMonthIndex+1,0).getDate();let firstDay=new Date(currentYear,currentMonthIndex,1).getDay();firstDay=firstDay===0?7:firstDay;
+const card=document.createElement("div");card.className="card shadow";const body=document.createElement("div");body.className="card-body";
+const weekdays=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];const wd=document.createElement("div");wd.className="calendar";weekdays.forEach(w=>{const d=document.createElement("div");d.className="weekday";d.textContent=w;wd.appendChild(d);});body.appendChild(wd);
+const grid=document.createElement("div");grid.className="calendar";
+for(let i=1;i<firstDay;i++){const e=document.createElement("div");e.className="calendar-day";grid.appendChild(e);} const today=new Date();
+for(let d=1;d<=daysInMonth;d++){const ds=String(d).padStart(2,"0");const has=allNotes.some(n=>{const{day,monthNum,year}=parseNoteDate(n.date);return day===ds&&monthNum===currentMonthIndex+1&&Number(year)===currentYear;});
+const cell=document.createElement("div");cell.className="calendar-day"+(has?" has-notes":"");cell.textContent=d;
+if(today.getDate()===d&&today.getMonth()===currentMonthIndex&&today.getFullYear()===currentYear){cell.classList.add("today");}
+cell.onclick=()=>{const filtered=allNotes.filter(n=>{const{day,monthNum,year}=parseNoteDate(n.date);return day===ds&&monthNum===currentMonthIndex+1&&Number(year)===currentYear;});renderNotes(filtered);};
+grid.appendChild(cell);} body.appendChild(grid);card.appendChild(body);c.appendChild(card);} 
+function prevMonth(){currentMonthIndex--;if(currentMonthIndex<0){currentMonthIndex=11;currentYear--;}renderCalendar();}
+function nextMonth(){currentMonthIndex++;if(currentMonthIndex>11){currentMonthIndex=0;currentYear++;}renderCalendar();}
+function renderNotes(notes){const c=document.getElementById("notesContainer");const e=document.getElementById("emptyState");const b=document.getElementById("clearViewBtn");c.innerHTML="";if(!notes.length){e.classList.remove("d-none");b.classList.add("d-none");return;}e.classList.add("d-none");notes.forEach(n=>{const card=document.createElement("div");card.className="card mb-3";card.innerHTML=`<div class='card-header bg-success text-white'><strong>${n.date}</strong> – ${n.session} – ${n.title}</div><div class='card-body'><pre>${n.body}</pre></div>`;c.appendChild(card);});b.classList.remove("d-none");}
+function clearNotesView(){document.getElementById("notesContainer").innerHTML="";document.getElementById("emptyState").classList.add("d-none");document.getElementById("clearViewBtn").classList.add("d-none");}
+function downloadSQLFile(session,filename){const s=allNotes.filter(n=>n.session===session);const t=s.map(n=>`-- ${n.date} : ${n.title}\n${n.body}\n\n`).join("");const blob=new Blob([t],{type:"text/sql"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);} 
+function updateLatestNotification(){if(!allNotes.length){document.getElementById("latestNotification").textContent="No notes yet.";return;}const sorted=[...allNotes].sort((a,b)=>toJSDate(b.date)-toJSDate(a.date));const latest=sorted[0];document.getElementById("latestNotification").textContent=`Latest notes: ${latest.date} (${latest.session})`;}
 loadNotes();
 
-/* ===================== ASSIGNMENT FEATURE ===================== */
-let expectedAnswer = /select \* from customers where age > 25/i;
-let total = 0;
-let correct = 0;
-
-function submitAssignment() {
-  const userSQL = document.getElementById("sqlInput").value.trim();
-  if (!userSQL) return alert("Please write your SQL answer.");
-
-  total++;
-  let isCorrect = expectedAnswer.test(userSQL);
-  if (isCorrect) correct++;
-
-  // Show result with correct answer if wrong
-  document.getElementById("assignmentResult").innerHTML = `
-    <div class="${isCorrect ? 'correct' : 'wrong'}">
-      ${isCorrect ? '✔ Correct Answer' : '✘ Wrong Answer'}
-    </div>
-    <h4>Your Answer:</h4>
-    <pre>${userSQL}</pre>
-    ${!isCorrect ? `<h4>Correct Answer:</h4><pre>SELECT * FROM customers WHERE age > 25;</pre>` : ''}
-  `;
-
-  updatePerformance();
-}
-
-function updatePerformance() {
-  const percentage = total ? ((correct / total) * 100).toFixed(2) : 0;
-
-  document.getElementById("performanceBox").innerHTML = `
-    <strong>Total Questions Attempted:</strong> ${total}<br>
-    <strong>Correct Answers:</strong> ${correct}<br>
-    <strong>Score:</strong> ${percentage}%
-  `;
-}
+// ---- Assignment System ----
+let expectedAnswer=/select \* from customers where age > 25/i;let total=0,correct=0;
+function submitAssignment(){const sql=document.getElementById("sqlInput").value.trim();if(!sql)return alert("Write your SQL!");total++;let ok=expectedAnswer.test(sql);if(ok)correct++;
+const res=document.getElementById("assignmentResult");res.innerHTML=`<div class='${ok?'text-success':'text-danger'} fw-bold'>${ok?'✔ Correct':'✘ Wrong'}</div><h6>Your Answer:</h6><pre>${sql}</pre>${!ok?`<h6>Correct Answer:</h6><pre>SELECT * FROM customers WHERE age > 25;</pre>`:''}`;
+updatePerformance();}
+function updatePerformance(){const p=total?((correct/total)*100).toFixed(2):0;document.getElementById("performanceBox").innerHTML=`Total Attempts: ${total}<br>Correct: ${correct}<br>Score: ${p}%`;}
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
