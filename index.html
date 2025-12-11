@@ -298,7 +298,7 @@
       const area = el('detailedResults'); area.innerHTML = '';
       const subs = loadUserSubmissions(currentUser).filter(s=>s.aid === (currentAssignment?currentAssignment.id: null));
       if (!subs.length) return area.innerHTML = '<div class="small-muted">No submissions for this assignment yet.</div>';
-      const list = subs.map(s => `<div class="mb-2"><strong>${new Date(s.timestamp).toLocaleString()}</strong> — ${s.correct?'<span class="text-success">Correct</span>':'<span class="text-danger">Incorrect</span>'}<pre class="mt-1 mb-0 small">${escapeHtml(s.sql)}</pre></div>`).join('');
+      const list = subs.map(s => `<div class="mb-2"><strong>${new Date(s.timestamp).toLocaleString()}</strong> — ${s.correct?'<span class="text-success">Correct</span>':'<span class="text-danger">Incorrect</span>'}<pre class="mt-1 mb-0 small">${escapeHtml(s.sql)}</pre>${!s.correct ? `<div class='text-danger small mt-1'>Correct Answer: ${escapeHtml(JSON.stringify(currentAssignment.expected))}</div>` : ''}</div>`).join('');(s => `<div class="mb-2"><strong>${new Date(s.timestamp).toLocaleString()}</strong> — ${s.correct?'<span class="text-success">Correct</span>':'<span class="text-danger">Incorrect</span>'}<pre class="mt-1 mb-0 small">${escapeHtml(s.sql)}</pre></div>`).join('');
       area.innerHTML = list;
     }
 
