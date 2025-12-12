@@ -411,15 +411,19 @@
       //     console.warn('Ace init failed', e);
       //   }
       // }
+function initAce(){
+  if(!editor){
+    editor = ace.edit("aceEditor");
+    editor.session.setMode("ace/mode/sql");
+    editor.setTheme("ace/theme/sqlserver");
+    editor.session.setUseWrapMode(true);
+  }
+  // Set content to sample SQL
+  editor.setValue(ASSIGNMENT.sample, -1);
 
-      function initAce(){
-  if(editor) return; // already initialized
-  editor = ace.edit('aceEditor');            // only pass the element id
-  editor.session.setMode("ace/mode/sql");    // set SQL mode separately
-  editor.setTheme("ace/theme/sqlserver");    // set theme separately
-  editor.session.setUseWrapMode(true);       // wrap lines
-  editor.setValue(ASSIGNMENT.sample, -1);    // load sample SQL
-  editor.focus();                             // focus to allow typing
+  // Force resize & focus (important when div was hidden)
+  editor.resize();
+  editor.focus();
 }
 
 
@@ -607,3 +611,4 @@
   </script>
 </body>
 </html>
+
