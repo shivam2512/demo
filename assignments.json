@@ -5,7 +5,8 @@
     "question": "Write a query to fetch all students who scored more than 80 marks.",
     "hint": "Look for table name 'students' and column 'marks' (if available).",
     "sample": "SELECT * FROM students WHERE marks > 80;",
-    "tables": ["students"]
+    "tables": ["students"],
+    "assignedTo": []
   },
   {
     "id": 2,
@@ -13,14 +14,7 @@
     "question": "List all employees who joined after 2020-01-01.",
     "hint": "Use a date column like 'joining_date' or 'joined_on'.",
     "sample": "SELECT * FROM employees WHERE joining_date > '2020-01-01';",
-    "tables": ["employees"]
-  },
-  {
-    "id": 3,
-    "title": "Top salaries",
-    "question": "Fetch the top 5 employees with the highest salary.",
-    "hint": "ORDER BY salary DESC and LIMIT or ROWNUM depending on DB.",
-    "sample": "SELECT * FROM employees ORDER BY salary DESC LIMIT 5;",
-    "tables": ["employees"]
+    "tables": ["employees"],
+    "assignedTo": []
   }
 ]

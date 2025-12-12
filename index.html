@@ -76,6 +76,9 @@
       <span class="navbar-brand">Practice Session Notes</span>
       <!-- Add this inside your existing <nav> container, e.g. next to the <span class="navbar-brand"> -->
 <button id="openAssignmentsBtn" class="btn btn-warning ms-auto" onclick="AssignmentModule.openAssignments()">Assignments</button>
+<!-- Login button (place inside the same .container as navbar-brand) -->
+<button id="openLoginBtn" class="btn btn-outline-light ms-2" onclick="AuthModule.showLoginModal()">Login</button>
+<span id="loggedInUserBadge" class="badge bg-info text-dark ms-2 d-none"></span>
 
     </div>
   </nav>
@@ -83,6 +86,31 @@
   <div id="latestNotification" class="alert alert-info text-center mb-0">
     Latest notes: Loading…
   </div>
+<!-- Login Modal -->
+<div id="loginModal" class="modal" tabindex="-1" style="display:none; background: rgba(0,0,0,0.4);">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Sign In</h5>
+        <button type="button" class="btn-close" onclick="AuthModule.hideLoginModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div id="loginError" class="text-danger small mb-2 d-none"></div>
+        <div class="mb-2">
+          <input id="loginUsername" class="form-control" placeholder="Username">
+        </div>
+        <div class="mb-2">
+          <input id="loginPassword" type="password" class="form-control" placeholder="Password">
+        </div>
+        <div class="form-text small text-muted">Default admin: <code>admin / admin123</code>; default student: <code>student / student123</code></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="AuthModule.hideLoginModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="AuthModule.login()">Sign in</button>
+      </div>
+    </div>
+  </div>
+</div>
 
   <main class="container py-4">
     <div class="mb-3 d-flex gap-2 flex-wrap">
@@ -103,44 +131,90 @@
     <div id="emptyState" class="text-center text-muted py-5 d-none">
       <h5>No notes yet</h5>
     </div>
-<!-- ===== ASSIGNMENTS SECTION (hidden by default) ===== -->
+<!-- ===== ASSIGNMENTS SECTION (with login & admin controls) ===== -->
 <div id="assignmentsSection" class="container py-4 d-none">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3 class="mb-0">SQL Assignments</h3>
     <div>
-      <button class="btn btn-outline-secondary" onclick="AssignmentModule.closeAssignments()">← Back</button>
+      <button class="btn btn-outline-secondary me-2" onclick="AssignmentModule.closeAssignments()">← Back</button>
+      <span id="roleBadge" class="badge bg-secondary me-2 d-none"></span>
+      <button id="logoutBtn" class="btn btn-outline-danger d-none" onclick="AuthModule.logout()">Logout</button>
     </div>
   </div>
 
-  <div id="assignmentInfo" class="mb-3">
-    <small class="text-muted">Choose a question, write the SQL in the editor and submit. Results are scored (basic checks) and saved locally.</small>
+  <div id="assignmentArea" class="mb-4">
+    <div id="assignmentInfo" class="mb-2">
+      <small class="text-muted">Choose a question, write the SQL in the editor and submit. Results are scored (basic checks) and saved to your account.</small>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-5">
+        <div id="assignmentQuestions" class="mb-3"></div>
+
+        <div class="mb-3">
+          <label for="assignmentSelect" class="form-label">Select Question</label>
+          <select id="assignmentSelect" class="form-select" onchange="AssignmentModule.onQuestionChange()">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Submission History</label>
+          <div id="submissionHistory" class="small text-muted"></div>
+        </div>
+      </div>
+
+      <div class="col-md-7">
+        <label class="form-label">SQL Editor</label>
+        <textarea id="sqlEditor" class="form-control" rows="10" placeholder="Write SQL here (e.g. SELECT * FROM students WHERE marks > 80);"></textarea>
+
+        <div class="mt-3 d-flex gap-2">
+          <button id="submitBtn" class="btn btn-success" onclick="AssignmentModule.submitAssignment()">Submit Assignment</button>
+          <button class="btn btn-secondary" onclick="AssignmentModule.clearEditor()">Clear</button>
+          <button class="btn btn-outline-info" onclick="AssignmentModule.showSample()">Show Sample</button>
+        </div>
+
+        <div id="scoreCard" class="alert alert-info mt-4 d-none"></div>
+      </div>
+    </div>
   </div>
 
-  <div class="row g-3">
-    <div class="col-md-5">
-      <div id="assignmentQuestions" class="mb-3"></div>
-      <div class="mb-3">
-        <label for="assignmentSelect" class="form-label">Select Question</label>
-        <select id="assignmentSelect" class="form-select" onchange="AssignmentModule.onQuestionChange()">
-          <option value="">Loading…</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Submission History</label>
-        <div id="submissionHistory" class="small text-muted"></div>
+  <!-- Admin panel (only visible to admin role) -->
+  <div id="adminPanel" class="mt-4 d-none">
+    <h5>Admin Controls</h5>
+    <div class="card mb-3">
+      <div class="card-body">
+        <form id="createAssignmentForm" onsubmit="return AssignmentModule.createAssignmentFromForm(event)">
+          <div class="mb-2">
+            <input id="newAssignTitle" class="form-control" placeholder="Title" required>
+          </div>
+          <div class="mb-2">
+            <textarea id="newAssignQuestion" class="form-control" rows="2" placeholder="Question text" required></textarea>
+          </div>
+          <div class="mb-2">
+            <input id="newAssignDuration" class="form-control" placeholder="Duration (seconds, optional)">
+            <small class="text-muted">Leave blank for unlimited.</small>
+          </div>
+          <div class="mb-2">
+            <input id="newAssignAssignedTo" class="form-control" placeholder="Assign to (comma separated usernames or leave blank for all)">
+            <small class="text-muted">Example: <code>student,rahul</code></small>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary">Create Assignment</button>
+            <button class="btn btn-outline-danger" type="button" onclick="AssignmentModule.deleteAllAssignments()">Delete All (danger)</button>
+          </div>
+        </form>
       </div>
     </div>
 
-    <div class="col-md-7">
-      <label class="form-label">SQL Editor</label>
-      <textarea id="sqlEditor" class="form-control" rows="10" placeholder="Write SQL here (e.g. SELECT * FROM students WHERE marks > 80);"></textarea>
-      <div class="mt-3 d-flex gap-2">
-        <button class="btn btn-success" onclick="AssignmentModule.submitAssignment()">Submit Assignment</button>
-        <button class="btn btn-secondary" onclick="AssignmentModule.clearEditor()">Clear</button>
-        <button class="btn btn-outline-info" onclick="AssignmentModule.showSample()">Show Sample</button>
+    <div class="card">
+      <div class="card-body">
+        <h6>All Results</h6>
+        <div id="adminResults" class="small text-muted"></div>
+        <div class="mt-3">
+          <button class="btn btn-sm btn-outline-secondary" onclick="AssignmentModule.exportResultsCSV()">Export CSV</button>
+        </div>
       </div>
-
-      <div id="scoreCard" class="alert alert-info mt-4 d-none"></div>
     </div>
   </div>
 </div>
@@ -623,5 +697,535 @@ const AssignmentModule = (function () {
     // Boot
     loadNotes();
   </script>
+
+  <script>
+/* ===================== AuthModule ===================== */
+/* Handles users, login/logout, UI badges. Uses localStorage. */
+const AuthModule = (function () {
+  const USERS_KEY = "lms_users_v1";
+  let currentUser = null;
+
+  function init() {
+    // Initialize default users (only if not present)
+    if (!localStorage.getItem(USERS_KEY)) {
+      const defaultUsers = [
+        { username: "admin", password: "admin123", role: "admin" },
+        { username: "student", password: "student123", role: "student" }
+      ];
+      localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers));
+    }
+    // If already logged in (persist), restore
+    const saved = sessionStorage.getItem("lms_current_user");
+    if (saved) {
+      currentUser = JSON.parse(saved);
+      applyAuthUI();
+    }
+  }
+
+  function getUsers() {
+    try { return JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); }
+    catch (e) { return []; }
+  }
+  function saveUsers(users) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+
+  function showLoginModal() {
+    document.getElementById("loginError").classList.add("d-none");
+    document.getElementById("loginUsername").value = "";
+    document.getElementById("loginPassword").value = "";
+    const modal = document.getElementById("loginModal");
+    modal.style.display = "block";
+  }
+  function hideLoginModal() {
+    const modal = document.getElementById("loginModal");
+    modal.style.display = "none";
+  }
+
+  function login() {
+    const u = document.getElementById("loginUsername").value.trim();
+    const p = document.getElementById("loginPassword").value;
+    const err = document.getElementById("loginError");
+    if (!u || !p) {
+      err.textContent = "Enter username and password.";
+      err.classList.remove("d-none");
+      return;
+    }
+    const users = getUsers();
+    const found = users.find(x => x.username === u && x.password === p);
+    if (!found) {
+      err.textContent = "Invalid credentials.";
+      err.classList.remove("d-none");
+      return;
+    }
+    currentUser = { username: found.username, role: found.role };
+    sessionStorage.setItem("lms_current_user", JSON.stringify(currentUser));
+    hideLoginModal();
+    applyAuthUI();
+    // If assignments section is open, refresh assignment view to reflect role
+    refreshAssignmentUI();
+  }
+
+  function logout() {
+    currentUser = null;
+    sessionStorage.removeItem("lms_current_user");
+    applyAuthUI();
+  }
+
+  function applyAuthUI() {
+    const badge = document.getElementById("loggedInUserBadge");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const roleBadge = document.getElementById("roleBadge");
+
+    if (currentUser) {
+      badge.textContent = `Signed in: ${currentUser.username}`;
+      badge.classList.remove("d-none");
+      logoutBtn.classList.remove("d-none");
+      roleBadge.textContent = currentUser.role.toUpperCase();
+      roleBadge.classList.remove("d-none");
+      // hide login button
+      document.getElementById("openLoginBtn")?.classList.add("d-none");
+    } else {
+      badge.classList.add("d-none");
+      logoutBtn.classList.add("d-none");
+      roleBadge.classList.add("d-none");
+      document.getElementById("openLoginBtn")?.classList.remove("d-none");
+    }
+  }
+
+  function getCurrentUser() {
+    return currentUser;
+  }
+
+  function registerUser(username, password, role = "student") {
+    const users = getUsers();
+    if (users.find(u => u.username === username)) return false;
+    users.push({ username, password, role });
+    saveUsers(users);
+    return true;
+  }
+
+  // Expose
+  init();
+  return {
+    showLoginModal,
+    hideLoginModal,
+    login,
+    logout,
+    getCurrentUser,
+    registerUser,
+    applyAuthUI
+  };
+})();
+
+/* ===================== AssignmentModule (updated) ===================== */
+/* Requires AuthModule. Replaces earlier AssignmentModule. */
+const AssignmentModule = (function () {
+  const ASSIGNMENTS_FILE = "assignments.json";
+  const ASSIGNMENTS_KEY = "lms_assignments_v1";
+  const RESULTS_KEY = "lms_results_v1"; // stores all students' results
+  let assignments = []; // local cache
+  let results = loadResults();
+
+  function loadResults() {
+    try { return JSON.parse(localStorage.getItem(RESULTS_KEY) || "{}"); }
+    catch (e) { return {}; }
+  }
+  function saveResults() {
+    localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  }
+
+  async function loadAssignmentsFromFile() {
+    try {
+      const res = await fetch(ASSIGNMENTS_FILE);
+      const arr = await res.json();
+      // merge into local (file seed only used when local empty)
+      if (!localStorage.getItem(ASSIGNMENTS_KEY)) {
+        localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(arr));
+      }
+      assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
+    } catch (err) {
+      console.error("Failed to load assignments file:", err);
+      assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
+    }
+    renderQuestions();
+    populateSelect();
+  }
+
+  function getAssignments() {
+    assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
+    return assignments;
+  }
+
+  function saveAssignments() {
+    localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(assignments));
+  }
+
+  function renderQuestions() {
+    const container = document.getElementById("assignmentQuestions");
+    container.innerHTML = "";
+    const list = getAssignments();
+    if (!list.length) {
+      container.innerHTML = `<div class="text-muted">No assignments yet.</div>`;
+      return;
+    }
+    list.forEach(a => {
+      const card = document.createElement("div");
+      card.className = "card mb-2";
+      card.innerHTML = `
+        <div class="card-body">
+          <strong>Q${a.id}:</strong> ${a.title || a.question}
+          <div class="text-muted small mt-1">${a.question}</div>
+          <div class="text-muted small mt-1">Assigned to: ${a.assignedTo?.length ? a.assignedTo.join(", ") : "All"}</div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function populateSelect() {
+    const sel = document.getElementById("assignmentSelect");
+    sel.innerHTML = '<option value="">-- Choose question --</option>';
+    getAssignments().forEach(a => {
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = `Q${a.id}: ${a.title || a.question.slice(0, 60)}`;
+      sel.appendChild(opt);
+    });
+  }
+
+  function openAssignments() {
+    // check login first
+    const user = AuthModule.getCurrentUser();
+    if (!user) {
+      AuthModule.showLoginModal();
+      return;
+    }
+    // hide calendar/notes (preserve original elements)
+    const calendar = document.getElementById("calendarContainer");
+    const notes = document.getElementById("notesContainer");
+    const empty = document.getElementById("emptyState");
+    if (calendar) calendar.classList.add("d-none");
+    if (notes) notes.classList.add("d-none");
+    if (empty) empty.classList.add("d-none");
+
+    // show assignments
+    document.getElementById("assignmentsSection").classList.remove("d-none");
+    document.getElementById("clearViewBtn")?.classList.add("d-none");
+
+    // UI per role
+    refreshAssignmentUI();
+  }
+
+  function closeAssignments() {
+    document.getElementById("assignmentsSection").classList.add("d-none");
+
+    // restore calendar/notes view exactly as before
+    const calendar = document.getElementById("calendarContainer");
+    const notes = document.getElementById("notesContainer");
+    const empty = document.getElementById("emptyState");
+    if (calendar) calendar.classList.remove("d-none");
+    if (notes) notes.classList.remove("d-none");
+    hideScore();
+  }
+
+  function refreshAssignmentUI() {
+    // ensure assignments loaded
+    if (!localStorage.getItem(ASSIGNMENTS_KEY)) {
+      // load from file or fallback
+      loadAssignmentsFromFile();
+    } else {
+      assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
+      renderQuestions();
+      populateSelect();
+    }
+
+    const user = AuthModule.getCurrentUser();
+    const adminPanel = document.getElementById("adminPanel");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const roleBadge = document.getElementById("roleBadge");
+    if (user && user.role === "admin") {
+      adminPanel.classList.remove("d-none");
+      // show admin results
+      renderAdminResults();
+    } else {
+      adminPanel.classList.add("d-none");
+    }
+
+    updateSubmissionHistory();
+    hideScore();
+
+    // update login/logout UI
+    AuthModule.applyAuthUI();
+  }
+
+  function onQuestionChange() {
+    const sel = document.getElementById("assignmentSelect");
+    const val = sel.value;
+    const q = getAssignments().find(a => String(a.id) === String(val));
+    if (!q) {
+      document.getElementById("sqlEditor").placeholder = "Write SQL here...";
+      document.getElementById("assignmentInfo").innerHTML = `<small class="text-muted">Choose a question to begin.</small>`;
+      return;
+    }
+    document.getElementById("assignmentInfo").innerHTML =
+      `<div><strong>Selected:</strong> Q${q.id} — ${q.title || q.question}</div><small class="text-muted">${q.hint ? "Hint: " + q.hint : ""}</small>`;
+    updateSubmissionHistory();
+  }
+
+  function basicScoreForQuery(query, question) {
+    let score = 0;
+    const qlow = query.toLowerCase();
+    if (qlow.includes("select")) score += 40;
+    if (qlow.includes("from")) score += 30;
+    if (qlow.includes("where")) score += 20;
+    if (question && question.tables && Array.isArray(question.tables)) {
+      question.tables.forEach(t => {
+        if (qlow.includes(t.toLowerCase())) score += 10;
+      });
+    } else {
+      if (question && /students|employees|marks|salary|emp\b/i.test(question.question || "")) {
+        const maybeTable = (question.question.match(/students|employees|marks|emp[s]?\b/i) || [])[0];
+        if (maybeTable && qlow.includes(maybeTable.toLowerCase())) score += 10;
+      }
+    }
+    return Math.min(100, score);
+  }
+
+  function submitAssignment() {
+    const user = AuthModule.getCurrentUser();
+    if (!user) {
+      AuthModule.showLoginModal();
+      return;
+    }
+    const sel = document.getElementById("assignmentSelect");
+    const assignmentId = sel.value;
+    const query = document.getElementById("sqlEditor").value.trim();
+    if (!assignmentId) {
+      showScore("Please select a question before submitting.", "danger");
+      return;
+    }
+    if (!query) {
+      showScore("Please write your SQL answer before submitting.", "danger");
+      return;
+    }
+
+    const question = getAssignments().find(a => String(a.id) === String(assignmentId));
+    // check assignment is assigned to this user (if assignedTo exists)
+    if (question.assignedTo && question.assignedTo.length > 0 && !question.assignedTo.includes(user.username) && user.role !== "admin") {
+      showScore("You are not assigned this assignment.", "danger");
+      return;
+    }
+
+    const score = basicScoreForQuery(query, question);
+    const entry = {
+      username: user.username,
+      time: new Date().toISOString(),
+      query,
+      score,
+      assignmentId: assignmentId
+    };
+
+    // store in results under assignmentId
+    results[assignmentId] = results[assignmentId] || [];
+    results[assignmentId].unshift(entry);
+    // keep only last 50 entries per assignment
+    if (results[assignmentId].length > 50) results[assignmentId].length = 50;
+    saveResults();
+
+    showScore(`Submitted! Score: ${score}/100`, "info");
+    updateSubmissionHistory();
+    renderAdminResults(); // update admin view if open
+  }
+
+  function updateSubmissionHistory() {
+    const sel = document.getElementById("assignmentSelect");
+    const assignmentId = sel.value;
+    const histContainer = document.getElementById("submissionHistory");
+    histContainer.innerHTML = "";
+    const user = AuthModule.getCurrentUser();
+    if (!assignmentId) {
+      histContainer.innerHTML = `<div class="text-muted">No question selected.</div>`;
+      return;
+    }
+    const list = (results[assignmentId] || []);
+    const userList = user && user.role === "admin" ? list : list.filter(r => r.username === user.username);
+    if (!userList.length) {
+      histContainer.innerHTML = `<div class="text-muted">No submissions yet for this question${user ? " (for you)" : ""}.</div>`;
+      return;
+    }
+    const ul = document.createElement("div");
+    ul.className = "list-group";
+    userList.forEach(s => {
+      const item = document.createElement("div");
+      item.className = "list-group-item small";
+      const t = new Date(s.time);
+      item.innerHTML = `<div><strong>${s.score}/100</strong> <span class="text-muted">— ${t.toLocaleString()} — <em>${s.username}</em></span></div>
+                        <div class="mt-1 text-truncate" title="${escapeHtml(s.query)}">${escapeHtml(s.query)}</div>`;
+      ul.appendChild(item);
+    });
+    histContainer.appendChild(ul);
+  }
+
+  function clearEditor() {
+    document.getElementById("sqlEditor").value = "";
+    hideScore();
+  }
+
+  function showSample() {
+    const sel = document.getElementById("assignmentSelect");
+    const assignmentId = sel.value;
+    const question = getAssignments().find(a => String(a.id) === String(assignmentId));
+    if (!question) {
+      showScore("Select a question first to see a sample.", "danger");
+      return;
+    }
+    const sample = question.sample || `-- Example:\n-- SELECT * FROM students WHERE marks > 80;`;
+    document.getElementById("sqlEditor").value = sample;
+  }
+
+  function showScore(message, type = "info") {
+    const sc = document.getElementById("scoreCard");
+    sc.className = `alert alert-${type} mt-4`;
+    sc.textContent = message;
+    sc.classList.remove("d-none");
+  }
+
+  function hideScore() {
+    const sc = document.getElementById("scoreCard");
+    sc.classList.add("d-none");
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return text.replace(/[&<>"'`=\/]/g, function (s) {
+      return ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
+        "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
+      })[s];
+    });
+  }
+
+  /* === Admin helpers === */
+  function createAssignmentFromForm(e) {
+    e.preventDefault();
+    const title = document.getElementById("newAssignTitle").value.trim();
+    const questionText = document.getElementById("newAssignQuestion").value.trim();
+    const duration = parseInt(document.getElementById("newAssignDuration").value) || 0;
+    const assignedRaw = document.getElementById("newAssignAssignedTo").value.trim();
+    const assignedTo = assignedRaw ? assignedRaw.split(",").map(s => s.trim()).filter(Boolean) : [];
+    if (!title || !questionText) return false;
+    const id = Date.now(); // simple unique id
+    const obj = {
+      id,
+      title,
+      question: questionText,
+      duration,
+      assignedTo
+    };
+    assignments = getAssignments();
+    assignments.unshift(obj);
+    saveAssignments();
+    renderQuestions();
+    populateSelect();
+    document.getElementById("createAssignmentForm").reset();
+    return false;
+  }
+
+  function deleteAllAssignments() {
+    if (!confirm("Delete ALL assignments from local storage? This cannot be undone.")) return;
+    assignments = [];
+    saveAssignments();
+    renderQuestions();
+    populateSelect();
+  }
+
+  function renderAdminResults() {
+    const adminContainer = document.getElementById("adminResults");
+    adminContainer.innerHTML = "";
+    const allAssignments = getAssignments();
+    if (!allAssignments.length) {
+      adminContainer.innerHTML = `<div class="text-muted">No assignments created yet.</div>`;
+      return;
+    }
+    const wrapper = document.createElement("div");
+    wrapper.className = "accordion";
+    allAssignments.forEach(a => {
+      const rows = (results[a.id] || []);
+      const avg = rows.length ? Math.round(rows.reduce((s,x)=>s+x.score,0)/rows.length) : 0;
+      const card = document.createElement("div");
+      card.className = "mb-2";
+      card.innerHTML = `
+        <div class="fw-bold">Q${a.id}: ${a.title || a.question} — Avg: ${avg}/100 — Submissions: ${rows.length}</div>
+        <div class="small text-muted mb-1">${a.question}</div>
+      `;
+      // list top 5 recent
+      const listDiv = document.createElement("div");
+      listDiv.className = "small";
+      rows.slice(0,10).forEach(r => {
+        const rtime = new Date(r.time);
+        const item = document.createElement("div");
+        item.innerHTML = `<strong>${r.username}</strong> — ${r.score}/100 — ${rtime.toLocaleString()}<div class="text-truncate" title="${escapeHtml(r.query)}">${escapeHtml(r.query)}</div>`;
+        listDiv.appendChild(item);
+      });
+      card.appendChild(listDiv);
+      wrapper.appendChild(card);
+    });
+    adminContainer.appendChild(wrapper);
+  }
+
+  function exportResultsCSV() {
+    // Flatten results into CSV rows
+    const rows = [["assignmentId","username","score","time","query"]];
+    Object.keys(results).forEach(assId => {
+      (results[assId] || []).forEach(r => {
+        rows.push([assId, r.username, r.score, r.time, r.query.replace(/\n/g, " ")]);
+      });
+    });
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "assignment_results.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /* === init === */
+  (function init() {
+    // load local assignments (seed from file if absent)
+    if (!localStorage.getItem(ASSIGNMENTS_KEY)) {
+      // try to fetch seed file, but don't block
+      loadAssignmentsFromFile();
+    } else {
+      assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
+      renderQuestions();
+      populateSelect();
+    }
+
+    // Wire up the Assignments open button if present (in case nav uses AssignmentModule.openAssignments)
+    // but keep that unchanged; we still expect caller to call AssignmentModule.openAssignments()
+  })();
+
+  // Public API
+  return {
+    openAssignments,
+    closeAssignments,
+    submitAssignment,
+    clearEditor,
+    onQuestionChange,
+    showSample,
+    createAssignmentFromForm,
+    deleteAllAssignments,
+    exportResultsCSV
+  };
+})();
+
+
+
+  </script>>
 </body>
 </html>
