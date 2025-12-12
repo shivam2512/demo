@@ -399,18 +399,29 @@
           }
         }
         // init Ace editor after DOM ready
-        setTimeout(()=>{ initAce(); }, 200);
+      //  setTimeout(()=>{ initAce(); }, 200);
       }
 
+      // function initAce(){
+      //   try {
+      //     editor = ace.edit('aceEditor', { mode: 'ace/mode/sql', theme: 'ace/theme/sqlserver' });
+      //     editor.session.setUseWrapMode(true);
+      //     editor.setValue(ASSIGNMENT.sample, -1);
+      //   } catch (e){
+      //     console.warn('Ace init failed', e);
+      //   }
+      // }
+
       function initAce(){
-        try {
-          editor = ace.edit('aceEditor', { mode: 'ace/mode/sql', theme: 'ace/theme/sqlserver' });
-          editor.session.setUseWrapMode(true);
-          editor.setValue(ASSIGNMENT.sample, -1);
-        } catch (e){
-          console.warn('Ace init failed', e);
-        }
-      }
+  if(editor) return; // already initialized
+  editor = ace.edit('aceEditor');            // only pass the element id
+  editor.session.setMode("ace/mode/sql");    // set SQL mode separately
+  editor.setTheme("ace/theme/sqlserver");    // set theme separately
+  editor.session.setUseWrapMode(true);       // wrap lines
+  editor.setValue(ASSIGNMENT.sample, -1);    // load sample SQL
+  editor.focus();                             // focus to allow typing
+}
+
 
       function start(){
         const name = document.getElementById('studentName').value.trim();
@@ -432,6 +443,8 @@
         document.getElementById('assignmentTitle').textContent = ASSIGNMENT.title;
         document.getElementById('assignmentQuestion').textContent = ASSIGNMENT.question;
         document.getElementById('assignmentResult').innerHTML = '';
+
+        initAce();
       }
 
       function cancel(){
