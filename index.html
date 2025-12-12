@@ -418,38 +418,69 @@ function initAce(){
     editor.setTheme("ace/theme/sqlserver");
     editor.session.setUseWrapMode(true);
   }
-  // Set content to sample SQL
+
   editor.setValue(ASSIGNMENT.sample, -1);
 
-  // Force resize & focus (important when div was hidden)
+  // Force resize and focus
   editor.resize();
   editor.focus();
 }
 
 
-      function start(){
-        const name = document.getElementById('studentName').value.trim();
-        const mobile = document.getElementById('studentMobile').value.trim();
-        if(!name || !mobile){
-          alert('Please enter name and mobile number before starting the assignment.');
-          return;
-        }
-        const student = { name, mobile };
-        localStorage.setItem(STORAGE_KEY_STUDENT, JSON.stringify(student));
-        // check if this student already submitted
-        if(hasSubmitted(student)){
-          showAlreadySubmitted();
-          return;
-        }
-        // show assignment UI
-        document.getElementById('studentDetailsCard').classList.add('d-none');
-        document.getElementById('assignmentCard').classList.remove('d-none');
-        document.getElementById('assignmentTitle').textContent = ASSIGNMENT.title;
-        document.getElementById('assignmentQuestion').textContent = ASSIGNMENT.question;
-        document.getElementById('assignmentResult').innerHTML = '';
 
-        initAce();
-      }
+      // function start(){
+      //   const name = document.getElementById('studentName').value.trim();
+      //   const mobile = document.getElementById('studentMobile').value.trim();
+      //   if(!name || !mobile){
+      //     alert('Please enter name and mobile number before starting the assignment.');
+      //     return;
+      //   }
+      //   const student = { name, mobile };
+      //   localStorage.setItem(STORAGE_KEY_STUDENT, JSON.stringify(student));
+      //   // check if this student already submitted
+      //   if(hasSubmitted(student)){
+      //     showAlreadySubmitted();
+      //     return;
+      //   }
+      //   // show assignment UI
+      //   document.getElementById('studentDetailsCard').classList.add('d-none');
+      //   document.getElementById('assignmentCard').classList.remove('d-none');
+      //   document.getElementById('assignmentTitle').textContent = ASSIGNMENT.title;
+      //   document.getElementById('assignmentQuestion').textContent = ASSIGNMENT.question;
+      //   document.getElementById('assignmentResult').innerHTML = '';
+
+      //   initAce();
+      // }
+
+      function start() {
+  const name = document.getElementById('studentName').value.trim();
+  const mobile = document.getElementById('studentMobile').value.trim();
+  if(!name || !mobile){
+    alert('Please enter name and mobile number before starting the assignment.');
+    return;
+  }
+
+  const student = { name, mobile };
+  localStorage.setItem(STORAGE_KEY_STUDENT, JSON.stringify(student));
+
+  if(hasSubmitted(student)){
+    showAlreadySubmitted();
+    return;
+  }
+
+  // Show assignment UI
+  document.getElementById('studentDetailsCard').classList.add('d-none');
+  document.getElementById('assignmentCard').classList.remove('d-none');
+  document.getElementById('assignmentTitle').textContent = ASSIGNMENT.title;
+  document.getElementById('assignmentQuestion').textContent = ASSIGNMENT.question;
+  document.getElementById('assignmentResult').innerHTML = '';
+
+  // Initialize Ace AFTER card is visible
+  setTimeout(() => {
+    initAce();
+  }, 100); // slight delay ensures div is rendered
+}
+
 
       function cancel(){
         // go back to details capture
@@ -611,4 +642,3 @@ function initAce(){
   </script>
 </body>
 </html>
-
