@@ -99,7 +99,11 @@
           <div id="assignmentQuestion" class="mb-3 text-muted"></div>
 
           <label class="form-label">SQL Editor</label>
-          <div id="aceEditor"></div>
+          <!-- <div id="aceEditor"></div> -->
+           <div id="editorContainer">
+    <div id="codeEditor" style="height:300px;border:1px solid #ccc;"></div>
+</div>
+
 
           <div class="mt-3 d-flex gap-2">
             <button id="submitAssignmentBtn" class="btn btn-success" onclick="AssignmentModule.submit()">Submit</button>
@@ -475,10 +479,10 @@ function initAce(){
   document.getElementById('assignmentQuestion').textContent = ASSIGNMENT.question;
   document.getElementById('assignmentResult').innerHTML = '';
 
-  // Initialize Ace AFTER card is visible
+
   setTimeout(() => {
-    initAce();
-  }, 100); // slight delay ensures div is rendered
+    createSqlEditor(ASSIGNMENT.sample);
+}, 100);
 }
 
 
@@ -523,44 +527,97 @@ function initAce(){
         return score;
       }
 
+      // async function submit(){
+      //   const student = JSON.parse(localStorage.getItem(STORAGE_KEY_STUDENT) || 'null');
+      //   if(!student || !student.name) { alert('Provide your details first'); return; }
+      //   // prevent double submit for same browser/student
+      //   if(hasSubmitted(student)){
+      //     alert('You have already submitted this assignment.');
+      //     showAlreadySubmitted();
+      //     return;
+      //   }
+      //   const query = editor ? editor.getValue().trim() : document.getElementById('assignmentEditorFallback') ? document.getElementById('assignmentEditorFallback').value.trim() : '';
+      //   if(!query){
+      //     alert('Please write your SQL before submitting.');
+      //     return;
+      //   }
+      //   const score = gradeQuery(query);
+      //   const entry = {
+      //     assignmentId: ASSIGNMENT.id,
+      //     name: student.name,
+      //     mobile: student.mobile,
+      //     query,
+      //     score,
+      //     submittedAt: new Date().toISOString()
+      //   };
+      //   submissions.unshift(entry);
+      //   localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(submissions));
+      //   // reflect submission UI
+      //   document.getElementById('assignmentResult').innerHTML = `<div class="alert alert-info">Submitted! Score: <strong>${score}</strong>/100</div>`;
+      //   document.getElementById('assignmentCard').classList.add('d-none');
+      //   document.getElementById('alreadySubmittedCard').classList.remove('d-none');
+      //   // attempt to send to Google Sheets if configured
+      //   if(GS_SCRIPT_URL && GS_SCRIPT_URL.trim()){
+      //     try {
+      //       await sendToServer(entry);
+      //     } catch (e){
+      //       console.warn('Send to server failed', e);
+      //     }
+      //   }
+      // }
+
       async function submit(){
-        const student = JSON.parse(localStorage.getItem(STORAGE_KEY_STUDENT) || 'null');
-        if(!student || !student.name) { alert('Provide your details first'); return; }
-        // prevent double submit for same browser/student
-        if(hasSubmitted(student)){
-          alert('You have already submitted this assignment.');
-          showAlreadySubmitted();
-          return;
-        }
-        const query = editor ? editor.getValue().trim() : document.getElementById('assignmentEditorFallback') ? document.getElementById('assignmentEditorFallback').value.trim() : '';
-        if(!query){
-          alert('Please write your SQL before submitting.');
-          return;
-        }
-        const score = gradeQuery(query);
-        const entry = {
-          assignmentId: ASSIGNMENT.id,
-          name: student.name,
-          mobile: student.mobile,
-          query,
-          score,
-          submittedAt: new Date().toISOString()
-        };
-        submissions.unshift(entry);
-        localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(submissions));
-        // reflect submission UI
-        document.getElementById('assignmentResult').innerHTML = `<div class="alert alert-info">Submitted! Score: <strong>${score}</strong>/100</div>`;
-        document.getElementById('assignmentCard').classList.add('d-none');
-        document.getElementById('alreadySubmittedCard').classList.remove('d-none');
-        // attempt to send to Google Sheets if configured
-        if(GS_SCRIPT_URL && GS_SCRIPT_URL.trim()){
-          try {
-            await sendToServer(entry);
-          } catch (e){
-            console.warn('Send to server failed', e);
-          }
-        }
+    const student = JSON.parse(localStorage.getItem(STORAGE_KEY_STUDENT) || 'null');
+    if(!student || !student.name) { alert('Provide your details first'); return; }
+
+    // prevent double submit for same browser/student
+    if(hasSubmitted(student)){
+      alert('You have already submitted this assignment.');
+      showAlreadySubmitted();
+      return;
+    }
+
+    // NEW: Get SQL query from CodeMirror
+    const query = codeEditor ? codeEditor.state.doc.toString().trim()
+                             : document.getElementById('assignmentEditorFallback') 
+                               ? document.getElementById('assignmentEditorFallback').value.trim()
+                               : '';
+
+    if(!query){
+      alert('Please write your SQL before submitting.');
+      return;
+    }
+
+    const score = gradeQuery(query);
+    const entry = {
+      assignmentId: ASSIGNMENT.id,
+      name: student.name,
+      mobile: student.mobile,
+      query,
+      score,
+      submittedAt: new Date().toISOString()
+    };
+
+    submissions.unshift(entry);
+    localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(submissions));
+
+    // reflect submission UI
+    document.getElementById('assignmentResult').innerHTML = 
+      `<div class="alert alert-info">Submitted! Score: <strong>${score}</strong>/100</div>`;
+
+    document.getElementById('assignmentCard').classList.add('d-none');
+    document.getElementById('alreadySubmittedCard').classList.remove('d-none');
+
+    // attempt to send to Google Sheets if configured
+    if(GS_SCRIPT_URL && GS_SCRIPT_URL.trim()){
+      try {
+        await sendToServer(entry);
+      } catch (e){
+        console.warn('Send to server failed', e);
       }
+    }
+}
+
 
       async function sendToServer(entry){
         // POST JSON to the Apps Script endpoint (you must implement doPost in Apps Script to accept this)
@@ -640,5 +697,24 @@ function initAce(){
     // Expose admin modal button
     window.AssignmentModule = AssignmentModule;
   </script>
+  <!-- CodeMirror 6 Dependencies -->
+<script type="module">
+    import { EditorView, basicSetup } from "https://esm.sh/@codemirror/basic-setup@0.20.0";
+    import { sql } from "https://esm.sh/@codemirror/lang-sql";
+    import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark";
+
+    window.createSqlEditor = function(initialCode) {
+        window.codeEditor = new EditorView({
+            doc: initialCode,
+            extensions: [
+                basicSetup,
+                sql(),
+                oneDark
+            ],
+            parent: document.querySelector("#codeEditor")
+        });
+    }
+</script>
+
 </body>
 </html>
