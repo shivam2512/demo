@@ -1,801 +1,596 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Practice Session Notes — LMS (Ace + sql.js + Google Sheets)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <title>Practice Session Notes + Assignments</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     pre { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
     .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
-    .weekday { font-weight: 600; text-align: center; color: #495057; padding: 6px 0; background: #f8f9fa; border-radius: .5rem; border:1px solid #e9ecef; }
-    .calendar-day { border:1px solid #dee2e6; padding:12px; text-align:center; cursor:pointer; min-height:70px; display:flex; align-items:center; justify-content:center; border-radius:.6rem; background:#fff; transition: transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease; font-weight:500; }
-    .calendar-day.has-notes { background: linear-gradient(135deg,#d1e7dd,#b6e0c2); color:#0f5132; box-shadow:0 2px 8px rgba(16,185,129,.25); border-color:#b6e0c2; }
-    .calendar-day.today { background:linear-gradient(135deg,#fff3cd,#ffe69c); color:#664d03; border-color:#ffe69c; box-shadow:0 3px 10px rgba(255,193,7,.25); font-weight:700; }
-    .calendar-day:hover{ transform:translateY(-2px); background:linear-gradient(135deg,#f8d7da,#f5c2c7); color:#842029; box-shadow:0 6px 16px rgba(220,53,69,.25); border-color:#f5c2c7; }
-    @media (max-width:576px){ .calendar{ grid-template-columns: repeat(3,1fr);} .weekday{font-size:.8rem;} .calendar-day{min-height:52px; font-size:.9rem; padding:8px;} }
-    .text-truncate-multi { overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; }
-    .ace_editor { height: 280px; width: 100%; border: 1px solid #ddd; border-radius:4px; }
-    .modal { position: fixed; top: 0; left: 0; width:100%; height:100%; z-index: 1050; display: none; background: rgba(0,0,0,0.35); }
+    .weekday { font-weight: 600; text-align: center; color: #495057; padding: 6px 0; background: #f8f9fa; border-radius: 0.5rem; border: 1px solid #e9ecef; }
+    .calendar-day { border: 1px solid #dee2e6; padding: 12px; text-align: center; cursor: pointer; min-height: 70px; display: flex; align-items: center; justify-content: center; border-radius: 0.6rem; background-color: #ffffff; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease; font-weight: 500; }
+    .calendar-day.has-notes { background: linear-gradient(135deg, #d1e7dd, #b6e0c2); color: #0f5132; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25); border-color: #b6e0c2; }
+    .calendar-day.today { background: linear-gradient(135deg, #fff3cd, #ffe69c); color: #664d03; border-color: #ffe69c; box-shadow: 0 3px 10px rgba(255, 193, 7, 0.25); font-weight: 700; }
+    .calendar-day:hover { transform: translateY(-2px); background: linear-gradient(135deg, #f8d7da, #f5c2c7); color: #842029; box-shadow: 0 6px 16px rgba(220, 53, 69, 0.25); border-color: #f5c2c7; }
+    .month-header { background: linear-gradient(90deg, #0d6efd, #6610f2); }
+    #calendarContainer .card { border: none; overflow: hidden; }
+    @media (max-width: 576px) {
+      .calendar { grid-template-columns: repeat(3, 1fr); }
+      .weekday { font-size: 0.8rem; padding: 4px 0; }
+      .calendar-day { min-height: 52px; font-size: 0.9rem; padding: 8px; }
+      .btn { width: 100%; }
+      .nav-controls h4 { font-size: 1rem; margin: 0 8px; }
+    }
+    /* Assignment styles */
+    #assignmentSection { margin: 32px 0; }
+    #aceEditor { height: 250px; width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+    .modal { position: fixed; top:0; left:0; width:100%; height:100%; z-index:1050; display:none; background: rgba(0,0,0,0.4); }
     .modal .modal-dialog { margin: 6rem auto; }
+    .text-truncate-multi { overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; }
   </style>
 </head>
 <body>
   <nav class="navbar navbar-dark bg-dark">
-    <div class="container d-flex gap-2 align-items-center">
+    <div class="container d-flex align-items-center">
       <span class="navbar-brand">Practice Session Notes</span>
-      <div class="btn-group ms-3" role="group" aria-label="tabs">
-        <button id="notesTabBtn" class="btn btn-outline-light active" onclick="UI.showTab('notes')">Notes</button>
-        <button id="assignTabBtn" class="btn btn-outline-light" onclick="UI.showTab('assignments')">Assignments</button>
-        <button id="profileTabBtn" class="btn btn-outline-light" onclick="UI.showTab('profile')">Profile</button>
-      </div>
-
+      <!-- Assignments button -->
+      <button id="openAssignmentsBtn" class="btn btn-warning ms-3" onclick="document.getElementById('assignmentSection').scrollIntoView({behavior:'smooth'})">Assignments</button>
       <div class="ms-auto d-flex gap-2 align-items-center">
-        <span id="loggedInUserBadge" class="badge bg-info text-dark d-none"></span>
-        <span id="roleBadge" class="badge bg-secondary d-none"></span>
-        <button id="openLoginBtn" class="btn btn-outline-light" onclick="Auth.showLoginModal()">Login</button>
-        <button id="openRegisterBtn" class="btn btn-outline-light d-none" onclick="Auth.showRegisterModal()">Register</button>
-        <button id="logoutBtn" class="btn btn-outline-danger d-none" onclick="Auth.logout()">Logout</button>
+        <!-- Admin View Button -->
+        <button id="adminViewBtn" class="btn btn-outline-light" onclick="AssignmentModule.showAdminView()">Admin View</button>
       </div>
     </div>
   </nav>
 
   <div id="latestNotification" class="alert alert-info text-center mb-0">Latest notes: Loading…</div>
 
-  <!-- LOGIN MODAL -->
-  <div id="loginModal" class="modal" aria-hidden="true">
-    <div class="modal-dialog modal-sm">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Sign In</h5><button class="btn-close" onclick="Auth.hideLoginModal()"></button></div>
-        <div class="modal-body">
-          <div id="loginError" class="text-danger small mb-2 d-none"></div>
-          <input id="loginUsername" class="form-control mb-2" placeholder="Username">
-          <input id="loginPassword" type="password" class="form-control mb-2" placeholder="Password">
-          <div class="form-text small text-muted">Default admin: <code>admin / admin123</code>; student: <code>student / student123</code></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="Auth.hideLoginModal()">Cancel</button>
-          <button class="btn btn-primary" onclick="Auth.login()">Sign in</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- REGISTER MODAL -->
-  <div id="registerModal" class="modal">
-    <div class="modal-dialog modal-sm">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Register</h5><button class="btn-close" onclick="Auth.hideRegisterModal()"></button></div>
-        <div class="modal-body">
-          <div id="regError" class="text-danger small mb-2 d-none"></div>
-          <input id="regUsername" class="form-control mb-2" placeholder="Username">
-          <input id="regPassword" type="password" class="form-control mb-2" placeholder="Password">
-          <select id="regRole" class="form-select mb-2"><option value="student">Student</option><option value="admin">Admin</option></select>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="Auth.hideRegisterModal()">Cancel</button>
-          <button class="btn btn-primary" onclick="Auth.register()">Create</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CHANGE PASSWORD / PROFILE MODAL -->
-  <div id="profileModal" class="modal">
-    <div class="modal-dialog modal-sm">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Profile</h5><button class="btn-close" onclick="Profile.hideModal()"></button></div>
-        <div class="modal-body">
-          <div id="profileMsg" class="text-success small d-none mb-2"></div>
-          <input id="profileUsername" class="form-control mb-2" disabled>
-          <input id="profileNewPassword" type="password" class="form-control mb-2" placeholder="New password (leave blank to keep)">
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="Profile.hideModal()">Close</button>
-          <button class="btn btn-primary" onclick="Profile.changePassword()">Save</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <main class="container py-4">
-    <!-- NOTES TAB -->
-    <section id="notesTab" class="tab-pane">
-      <div class="mb-3 d-flex gap-2 flex-wrap">
-        <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download Afternoon Notes</button>
-        <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download Evening Notes</button>
-      </div>
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+      <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download Afternoon Notes</button>
+      <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download Evening Notes</button>
+    </div>
 
-      <div class="nav-controls d-flex justify-content-between align-items-center mb-2">
-        <button class="btn btn-outline-secondary" onclick="prevMonth()">← Previous</button>
-        <h4 id="monthLabel" class="fw-bold mb-0"></h4>
-        <button class="btn btn-outline-secondary" onclick="nextMonth()">Next →</button>
-      </div>
+    <!-- Navigation arrows -->
+    <div class="nav-controls d-flex justify-content-between align-items-center mb-2">
+      <button class="btn btn-outline-secondary" onclick="prevMonth()">← Previous</button>
+      <h4 id="monthLabel" class="fw-bold mb-0"></h4>
+      <button class="btn btn-outline-secondary" onclick="nextMonth()">Next →</button>
+    </div>
 
-      <div id="calendarContainer" class="mb-4"></div>
-      <div id="notesContainer"></div>
-      <div id="emptyState" class="text-center text-muted py-5 d-none"><h5>No notes yet</h5></div>
-    </section>
+    <div id="calendarContainer" class="mb-4"></div>
 
-    <!-- ASSIGNMENTS TAB -->
-    <section id="assignmentsTab" class="tab-pane d-none">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">Assignments</h3>
-        <div><small class="text-muted">Use Ace editor (SQL), testcases run in-browser via sql.js</small></div>
-      </div>
+    <div id="notesContainer"></div>
+    <div id="emptyState" class="text-center text-muted py-5 d-none">
+      <h5>No notes yet</h5>
+    </div>
 
-      <div class="row g-3">
-        <div class="col-lg-4">
-          <div id="assignmentList" class="mb-3"></div>
+    <div class="text-center mt-3">
+      <button class="btn btn-outline-secondary d-none" id="clearViewBtn" onclick="clearNotesView()">Clear View</button>
+    </div>
 
-          <div class="mb-3">
-            <label class="form-label">Choose</label>
-            <select id="assignmentSelect" class="form-select" onchange="Assignments.onSelect()"><option value="">-- Choose assignment --</option></select>
+    <!-- ===== ASSIGNMENT SECTION (ADDED) ===== -->
+    <hr class="my-4">
+    <section id="assignmentSection">
+      <h3>SQL Assignment</h3>
+
+      <!-- Student details capture -->
+      <div id="studentDetailsCard" class="card p-3 mb-3">
+        <h5 class="mb-2">Enter your details before starting</h5>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <input id="studentName" class="form-control" placeholder="Full name">
           </div>
-
-          <div class="mb-3">
-            <label class="form-label">Submission History</label>
-            <div id="submissionHistory" class="small text-muted"></div>
+          <div class="col-md-6">
+            <input id="studentMobile" class="form-control" placeholder="Mobile number">
           </div>
         </div>
-
-        <div class="col-lg-8">
-          <div id="assignmentCard" class="card mb-3 d-none">
-            <div class="card-body">
-              <div id="assignmentHeader" class="mb-2"></div>
-
-              <div id="timerArea" class="mb-2 d-none">
-                <div>Time left: <span id="timeLeft">--:--</span></div>
-                <div class="progress mt-1"><div id="timerBar" class="progress-bar" style="width:0%"></div></div>
-              </div>
-
-              <div>
-                <label class="form-label">SQL Editor</label>
-                <div id="aceEditor" class="ace_editor"></div>
-              </div>
-
-              <div class="mt-2 d-flex gap-2">
-                <button id="startBtn" class="btn btn-outline-primary" onclick="Assignments.start()">Start</button>
-                <button id="submitBtn" class="btn btn-success" onclick="Assignments.submit()">Submit</button>
-                <button id="sampleBtn" class="btn btn-outline-info" onclick="Assignments.insertSample()">Show Sample</button>
-                <button class="btn btn-secondary" onclick="Assignments.clearEditor()">Clear</button>
-              </div>
-
-              <div id="assignmentResult" class="mt-3"></div>
-            </div>
-          </div>
-
-          <div id="scoreCard" class="alert alert-info d-none"></div>
-
-          <!-- admin panel -->
-          <div id="adminPanel" class="card d-none">
-            <div class="card-body">
-              <h5>Admin Controls</h5>
-              <form id="createForm" onsubmit="return Admin.createAssignment(event)">
-                <input id="adminTitle" class="form-control mb-2" placeholder="Title" required>
-                <textarea id="adminQuestion" class="form-control mb-2" placeholder="Question text" rows="2" required></textarea>
-                <textarea id="adminSchema" class="form-control mb-2" placeholder="Schema + seed SQL (CREATE TABLE/INSERT... used to build test DB)" rows="4"></textarea>
-                <textarea id="adminExpected" class="form-control mb-2" placeholder="Expected result JSON (array of rows) e.g. [{&quot;name&quot;:&quot;A&quot;}] " rows="3"></textarea>
-                <input id="adminDuration" class="form-control mb-2" placeholder="Duration in seconds (0 = unlimited)">
-                <input id="adminAssignedTo" class="form-control mb-2" placeholder="Assign to (comma-separated usernames)">
-                <div class="d-flex gap-2">
-                  <button class="btn btn-primary">Create</button>
-                  <button type="button" class="btn btn-outline-danger" onclick="Admin.deleteAll()">Delete All</button>
-                  <button type="button" class="btn btn-outline-secondary" onclick="Admin.exportResults()">Export Results</button>
-                  <button type="button" class="btn btn-outline-success" onclick="Admin.syncFromServer()">Sync From Sheets</button>
-                </div>
-              </form>
-
-              <hr>
-              <div id="adminResults" class="small text-muted"></div>
-            </div>
-          </div>
-
+        <div class="mt-3 d-flex gap-2">
+          <button id="startAssignmentBtn" class="btn btn-primary" onclick="AssignmentModule.start()">Start Assignment</button>
+          <button id="clearStudentBtn" class="btn btn-outline-secondary" onclick="AssignmentModule.clearStudentDetails()">Clear</button>
         </div>
+        <div class="form-text mt-2 text-muted">Students must fill details. After submitting, you cannot re-attempt (per browser).</div>
       </div>
-    </section>
 
-    <!-- PROFILE TAB -->
-    <section id="profileTab" class="tab-pane d-none">
-      <div class="card">
+      <!-- Assignment content -->
+      <div id="assignmentCard" class="card mb-3 d-none">
         <div class="card-body">
-          <h5>Your Profile</h5>
-          <div id="profileInfo" class="mb-3"></div>
-          <button class="btn btn-outline-primary" onclick="Profile.openModal()">Change Password</button>
+          <div id="assignmentTitle" class="h5"></div>
+          <div id="assignmentQuestion" class="mb-3 text-muted"></div>
+
+          <label class="form-label">SQL Editor</label>
+          <div id="aceEditor"></div>
+
+          <div class="mt-3 d-flex gap-2">
+            <button id="submitAssignmentBtn" class="btn btn-success" onclick="AssignmentModule.submit()">Submit</button>
+            <button id="showSampleBtn" class="btn btn-outline-info" onclick="AssignmentModule.insertSample()">Show Sample</button>
+            <button id="cancelAssignmentBtn" class="btn btn-outline-secondary" onclick="AssignmentModule.cancel()">Cancel</button>
+          </div>
+
+          <div id="assignmentResult" class="mt-3"></div>
         </div>
       </div>
+
+      <!-- Already submitted -->
+      <div id="alreadySubmittedCard" class="alert alert-success d-none">
+        You have already submitted this assignment. Thank you!
+      </div>
     </section>
+    <!-- ===== end assignment section ===== -->
+
   </main>
 
-  <!-- Libraries: Ace + sql.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.15/ace.js" integrity="" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+  <!-- Admin modal -->
+  <div id="adminModal" class="modal" role="dialog">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header d-flex justify-content-between align-items-center">
+          <h5 class="modal-title">Submissions (Admin)</h5>
+          <div>
+            <button class="btn btn-sm btn-outline-secondary me-2" onclick="AssignmentModule.exportCSV()">Export CSV</button>
+            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('adminModal').style.display='none'">Close</button>
+          </div>
+        </div>
+        <div class="modal-body" id="adminModalBody">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ace editor CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.15/ace.js"></script>
 
   <script>
-/* ================= CONFIG ================ */
-/*
- * Replace APPS_SCRIPT_URL with your Google Apps Script Web App URL (deployed as Web App).
- * The web app should accept POST JSON { action: "...", payload: ... } and respond JSON { success:true, data: ... }
- * Minimal actions used in code:
- * - loadAssignments -> returns array of assignments
- * - saveAssignment -> payload: assignment object -> returns saved assignment
- * - loadResults -> returns results object
- * - saveResult -> payload: { assignmentId, entry } -> returns success
- * - loadUsers -> returns user list
- * - saveUsers -> payload: users array
- *
- * If APPS_SCRIPT_URL is empty or fetch fails, the app falls back to localStorage.
- */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzShbVFdlHdtM9mQ0DbRR7zvEPvgwzuY7lYUSpiDs-Ak4RJ3gWaJzIVDbdVP8m4TduwEA/exec'; // <-- PUT your Apps Script Web App URL HERE (or leave empty to use localStorage fallback)
+    /* ---------------------------
+       ORIGINAL NOTES & CALENDAR
+       (unchanged, copied from your original)
+       --------------------------- */
+    let allNotes = [];
+    let currentMonthIndex, currentYear;
 
-const CONFIG = {
-  useServer: !!APPS_SCRIPT_URL,
-  serverTimeoutMs: 8000
-};
-/* ========================================= */
+    const monthMap = {
+      JAN: "01", FEB: "02", MAR: "03", APR: "04", MAY: "05", JUN: "06",
+      JUL: "07", AUG: "08", SEP: "09", OCT: "10", NOV: "11", DEC: "12"
+    };
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-  /********** Original notes/calendar functions (kept intact) **********/
-  let allNotes = [];
-  let currentMonthIndex, currentYear;
-  const monthMap = { JAN:"01", FEB:"02", MAR:"03", APR:"04", MAY:"05", JUN:"06", JUL:"07", AUG:"08", SEP:"09", OCT:"10", NOV:"11", DEC:"12" };
-  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    function parseNoteDate(str) {
+      const [d, mText, y] = str.split("-");
+      const mNum = Number(monthMap[mText.toUpperCase()]);
+      return { day: d, monthNum: mNum, monthText: mText.toUpperCase(), year: y };
+    }
 
-  function parseNoteDate(str){ const [d,mText,y] = str.split("-"); const mNum = Number(monthMap[mText.toUpperCase()]); return { day:d, monthNum:mNum, monthText:mText.toUpperCase(), year:y }; }
-  function toJSDate(str){ const {day, monthNum, year} = parseNoteDate(str); return new Date(Number(year), monthNum-1, Number(day)); }
+    function toJSDate(str) {
+      const { day, monthNum, year } = parseNoteDate(str);
+      return new Date(Number(year), monthNum - 1, Number(day));
+    }
 
-  async function loadNotes(){
-    try {
-      const res = await fetch("notes.json");
-      const notes = await res.json();
-      allNotes = notes;
+    async function loadNotes() {
+      try {
+        const res = await fetch("notes.json");
+        const notes = await res.json();
+        allNotes = notes;
+
+        const today = new Date();
+        currentMonthIndex = today.getMonth();
+        currentYear = today.getFullYear();
+
+        renderCalendar();
+        updateLatestNotification();
+      } catch (err) {
+        console.error("Error loading notes:", err);
+        document.getElementById("latestNotification").textContent = "Failed to load notes.";
+      }
+    }
+
+    function renderCalendar() {
+      const container = document.getElementById("calendarContainer");
+      container.innerHTML = "";
+
+      document.getElementById("monthLabel").textContent = `${monthNames[currentMonthIndex]} ${currentYear}`;
+
+      const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
+      let firstDay = new Date(currentYear, currentMonthIndex, 1).getDay();
+      firstDay = firstDay === 0 ? 7 : firstDay;
+
+      const card = document.createElement("div");
+      card.className = "card shadow-lg";
+
+      const calendarBody = document.createElement("div");
+      calendarBody.className = "card-body";
+
+      const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const weekdayRow = document.createElement("div");
+      weekdayRow.className = "calendar";
+      weekdays.forEach(w => {
+        const wd = document.createElement("div");
+        wd.className = "weekday";
+        wd.textContent = w;
+        weekdayRow.appendChild(wd);
+      });
+      calendarBody.appendChild(weekdayRow);
+
+      const calendar = document.createElement("div");
+      calendar.className = "calendar";
+
+      for (let i = 1; i < firstDay; i++) {
+        const emptyCell = document.createElement("div");
+        emptyCell.className = "calendar-day";
+        calendar.appendChild(emptyCell);
+      }
+
       const today = new Date();
-      currentMonthIndex = today.getMonth();
-      currentYear = today.getFullYear();
-      renderCalendar();
-      updateLatestNotification();
-    } catch(err){
-      console.error("Error loading notes:", err);
-      document.getElementById("latestNotification").textContent = "Failed to load notes.";
-    }
-  }
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dayStr = String(d).padStart(2, "0");
 
-  function renderCalendar(){
-    const container = document.getElementById("calendarContainer"); container.innerHTML="";
-    document.getElementById("monthLabel").textContent = `${monthNames[currentMonthIndex]} ${currentYear}`;
-    const daysInMonth = new Date(currentYear, currentMonthIndex+1, 0).getDate();
-    let firstDay = new Date(currentYear, currentMonthIndex,1).getDay(); firstDay = firstDay === 0 ? 7 : firstDay;
-    const card = document.createElement("div"); card.className="card shadow-lg";
-    const calendarBody = document.createElement("div"); calendarBody.className="card-body";
-    const weekdays = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]; const weekdayRow = document.createElement("div"); weekdayRow.className="calendar";
-    weekdays.forEach(w=>{ const wd=document.createElement("div"); wd.className="weekday"; wd.textContent=w; weekdayRow.appendChild(wd); });
-    calendarBody.appendChild(weekdayRow);
-    const calendar = document.createElement("div"); calendar.className="calendar";
-    for(let i=1;i<firstDay;i++){ const emptyCell = document.createElement("div"); emptyCell.className="calendar-day"; calendar.appendChild(emptyCell); }
-    const today = new Date();
-    for(let d=1; d<=daysInMonth; d++){
-      const dayStr=String(d).padStart(2,'0');
-      const hasNote = allNotes.some(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; });
-      const dayCell = document.createElement("div"); dayCell.className = "calendar-day" + (hasNote ? " has-notes": ""); dayCell.textContent = d;
-      if(today.getMonth()===currentMonthIndex && today.getFullYear()===currentYear && today.getDate()===d) dayCell.classList.add("today");
-      dayCell.addEventListener("click", ()=>{ const filtered = allNotes.filter(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; }); renderNotes(filtered); });
-      calendar.appendChild(dayCell);
-    }
-    const totalCells = (firstDay-1) + daysInMonth; const trailing = (7 - (totalCells % 7)) % 7;
-    for(let i=0;i<trailing;i++){ const emptyCell=document.createElement("div"); emptyCell.className="calendar-day"; calendar.appendChild(emptyCell); }
-    calendarBody.appendChild(calendar); card.appendChild(calendarBody); container.appendChild(card);
-  }
-
-  function prevMonth(){ currentMonthIndex--; if(currentMonthIndex<0){ currentMonthIndex=11; currentYear--; } renderCalendar(); }
-  function nextMonth(){ currentMonthIndex++; if(currentMonthIndex>11){ currentMonthIndex=0; currentYear++; } renderCalendar(); }
-
-  function renderNotes(notes){
-    const container = document.getElementById("notesContainer"); const emptyState = document.getElementById("emptyState"); const clearBtn = document.getElementById("clearViewBtn");
-    container.innerHTML="";
-    if(!notes.length){ emptyState.classList.remove("d-none"); clearBtn.classList.add("d-none"); return; }
-    emptyState.classList.add("d-none");
-    notes.forEach(n=>{ const card = document.createElement("div"); card.className="card mb-3 shadow-sm"; card.innerHTML = `<div class="card-header bg-success text-white"><strong>${n.date}</strong> – ${n.session} – ${n.title}</div><div class="card-body"><pre class="bg-light p-3 rounded"><code>${n.body}</code></pre></div>`; container.appendChild(card); });
-    clearBtn.classList.remove("d-none");
-  }
-
-  function clearNotesView(){ document.getElementById("notesContainer").innerHTML=""; document.getElementById("emptyState").classList.add("d-none"); document.getElementById("clearViewBtn").classList.add("d-none"); }
-
-  function downloadSQLFile(session, filename){
-    const sessionNotes = allNotes.filter(n=>n.session === session);
-    const sqlContent = sessionNotes.map(n=>`-- ${n.date} : ${n.title}\n${n.body}\n\n`).join("");
-    const blob = new Blob([sqlContent], { type: "text/sql" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url); showNotification(`${filename} has been updated and downloaded!`);
-  }
-  function showNotification(message){ const notif = document.createElement("div"); notif.className="alert alert-success text-center"; notif.textContent=message; document.body.prepend(notif); setTimeout(()=>notif.remove(),5000); }
-
-  function updateLatestNotification(){
-    if(!allNotes.length){ document.getElementById("latestNotification").textContent = "No notes available yet."; return; }
-    const sorted = [...allNotes].sort((a,b)=> toJSDate(b.date) - toJSDate(a.date));
-    const latestDate = sorted[0].date; const latestDayNotes = allNotes.filter(n=>n.date===latestDate); const latestNote = latestDayNotes.find(n=>n.session==='Evening') || latestDayNotes[0];
-    document.getElementById("latestNotification").textContent = `🔔 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
-  }
-
-  /********** UI Tab helper **********/
-  const UI = (function(){
-    function showTab(name){
-      document.getElementById('notesTab').classList.toggle('d-none', name !== 'notes');
-      document.getElementById('assignmentsTab').classList.toggle('d-none', name !== 'assignments');
-      document.getElementById('profileTab').classList.toggle('d-none', name !== 'profile');
-      document.getElementById('notesTabBtn').classList.toggle('active', name === 'notes');
-      document.getElementById('assignTabBtn').classList.toggle('active', name === 'assignments');
-      document.getElementById('profileTabBtn').classList.toggle('active', name === 'profile');
-      if(name === 'assignments') Assignments.refreshUI();
-      if(name === 'profile') Profile.render();
-    }
-    return { showTab };
-  })();
-
-  /********** Server helper **********/
-  async function serverCall(action, payload){
-    if(!CONFIG.useServer) return { success:false, error:'no-server' };
-    try{
-      const ctl = new AbortController();
-      const timeout = setTimeout(()=>ctl.abort(), CONFIG.serverTimeoutMs);
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ action, payload }),
-        signal: ctl.signal
-      });
-      clearTimeout(timeout);
-      const j = await res.json();
-      return j;
-    } catch (e) {
-      console.warn('Server call failed', e);
-      return { success:false, error: e.message || String(e) };
-    }
-  }
-
-  /********** Auth, Profile modules with server/local fallback **********/
-  const Auth = (function(){
-    const USERS_KEY = 'lms_users_v2';
-    let current = null;
-
-    function init(){
-      // seed users if none
-      const local = localStorage.getItem(USERS_KEY);
-      if(!local){
-        const u = [{username:'admin', password:'admin123', role:'admin'}, {username:'student', password:'student123', role:'student'}];
-        localStorage.setItem(USERS_KEY, JSON.stringify(u));
-      }
-      // try load current from session
-      const s = sessionStorage.getItem('lms_user');
-      if(s){ current = JSON.parse(s); applyUI(); }
-    }
-
-    function usersFromServerOrLocal(){
-      // Try server first
-      return serverCall('loadUsers', null).then(r=>{
-        if(r && r.success && Array.isArray(r.data)) { localStorage.setItem(USERS_KEY, JSON.stringify(r.data)); return r.data; }
-        try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch(e){ return []; }
-      }).catch(()=> { try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch(e){ return []; } });
-    }
-
-    function showLoginModal(){ document.getElementById('loginError').classList.add('d-none'); document.getElementById('loginUsername').value=''; document.getElementById('loginPassword').value=''; document.getElementById('loginModal').style.display='block'; }
-    function hideLoginModal(){ document.getElementById('loginModal').style.display='none'; }
-    function showRegisterModal(){ document.getElementById('regError').classList.add('d-none'); document.getElementById('regUsername').value=''; document.getElementById('regPassword').value=''; document.getElementById('regRole').value='student'; document.getElementById('registerModal').style.display='block'; }
-    function hideRegisterModal(){ document.getElementById('registerModal').style.display='none'; }
-
-    async function login(){
-      const u = document.getElementById('loginUsername').value.trim();
-      const p = document.getElementById('loginPassword').value;
-      const err = document.getElementById('loginError');
-      if(!u || !p){ err.textContent = 'Enter username and password.'; err.classList.remove('d-none'); return; }
-      const users = await usersFromServerOrLocal();
-      const found = users.find(x => x.username === u && x.password === p);
-      if(!found){ err.textContent = 'Invalid credentials.'; err.classList.remove('d-none'); return; }
-      current = { username: found.username, role: found.role };
-      sessionStorage.setItem('lms_user', JSON.stringify(current));
-      hideLoginModal();
-      applyUI();
-      Assignments.refreshUI();
-    }
-
-    async function register(){
-      const u = document.getElementById('regUsername').value.trim();
-      const p = document.getElementById('regPassword').value;
-      const role = document.getElementById('regRole').value;
-      const err = document.getElementById('regError');
-      if(!u || !p){ err.textContent='Provide username & password'; err.classList.remove('d-none'); return; }
-      const users = JSON.parse(localStorage.getItem('lms_users_v2') || '[]');
-      if(users.find(x=>x.username===u)){ err.textContent='Username already exists'; err.classList.remove('d-none'); return; }
-      const newUser = { username: u, password: p, role };
-      users.push(newUser);
-      localStorage.setItem('lms_users_v2', JSON.stringify(users));
-      // try push to server (fire and forget)
-      if(CONFIG.useServer) serverCall('saveUsers', users);
-      hideRegisterModal();
-      alert('User created. Please login.');
-    }
-
-    function logout(){ current = null; sessionStorage.removeItem('lms_user'); applyUI(); Assignments.refreshUI(); }
-
-    function applyUI(){
-      const badge = document.getElementById('loggedInUserBadge');
-      const roleBadge = document.getElementById('roleBadge');
-      const loginBtn = document.getElementById('openLoginBtn');
-      const logoutBtn = document.getElementById('logoutBtn');
-      const regBtn = document.getElementById('openRegisterBtn');
-
-      if(current){
-        badge.textContent = `Signed in: ${current.username}`; badge.classList.remove('d-none');
-        roleBadge.textContent = current.role.toUpperCase(); roleBadge.classList.remove('d-none');
-        loginBtn.classList.add('d-none'); logoutBtn.classList.remove('d-none'); regBtn.classList.add('d-none');
-      } else {
-        badge.classList.add('d-none'); roleBadge.classList.add('d-none'); loginBtn.classList.remove('d-none'); regBtn.classList.remove('d-none'); logoutBtn.classList.add('d-none');
-      }
-      Profile.render();
-    }
-
-    function currentUser(){ return current; }
-
-    // change password (local + server)
-    async function changePassword(username, newPass){
-      // update local store
-      const users = JSON.parse(localStorage.getItem('lms_users_v2') || '[]');
-      const u = users.find(x=>x.username===username);
-      if(u){ u.password = newPass; localStorage.setItem('lms_users_v2', JSON.stringify(users)); }
-      if(CONFIG.useServer) await serverCall('saveUsers', users);
-      return true;
-    }
-
-    init();
-    return { showLoginModal, hideLoginModal, login, logout, showRegisterModal, hideRegisterModal, register, applyUI, currentUser, changePassword };
-
-    function init(){}
-  })();
-
-  const Profile = (function(){
-    function render(){
-      const cur = Auth.currentUser();
-      const area = document.getElementById('profileInfo');
-      if(!cur) { area.innerHTML = '<div class="text-muted">Not signed in</div>'; return; }
-      area.innerHTML = `<div><strong>${cur.username}</strong> — <small class="text-muted">${cur.role}</small></div>`;
-    }
-    function openModal(){
-      const cur = Auth.currentUser();
-      if(!cur){ Auth.showLoginModal(); return; }
-      document.getElementById('profileUsername').value = cur.username;
-      document.getElementById('profileNewPassword').value = '';
-      document.getElementById('profileMsg').classList.add('d-none');
-      document.getElementById('profileModal').style.display = 'block';
-    }
-    function hideModal(){ document.getElementById('profileModal').style.display='none'; }
-    async function changePassword(){
-      const username = document.getElementById('profileUsername').value;
-      const newPass = document.getElementById('profileNewPassword').value;
-      if(!newPass) { document.getElementById('profileMsg').textContent='Password cannot be blank'; document.getElementById('profileMsg').classList.remove('d-none'); return; }
-      await Auth.changePassword(username, newPass);
-      document.getElementById('profileMsg').textContent = 'Password updated'; document.getElementById('profileMsg').classList.remove('d-none');
-      setTimeout(()=>hideModal(), 1200);
-    }
-    return { render, openModal, hideModal, changePassword };
-  })();
-
-  /********** sql.js initialization **********/
-  let SQL = null;
-  (async function initSqlJsAndAce(){
-    try {
-      const SQLLib = await initSqlJs({ locateFile: file => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/' + file });
-      SQL = SQLLib;
-    } catch (e){
-      console.error('Failed to init sql.js', e);
-    }
-    // init ace
-    window.editor = ace.edit("aceEditor", { mode: "ace/mode/sql", theme: "ace/theme/sqlserver", fontSize:14 });
-    window.editor.session.setUseWrapMode(true);
-    // Load notes and assignments after editors ready
-    loadNotes();
-    Admin.init(); Assignments.init(); Auth.applyUI();
-  })();
-
-  /********** Storage keys & helpers **********/
-  const ASSIGN_KEY = 'lms_assign_v3';
-  const RESULTS_KEY = 'lms_results_v3';
-
-  /********** Admin helpers (create assignments/testcases and sync with Sheets) **********/
-  const Admin = (function(){
-    function init(){ /* empty now */ }
-    async function createAssignment(e){
-      e.preventDefault();
-      const title = document.getElementById('adminTitle').value.trim();
-      const question = document.getElementById('adminQuestion').value.trim();
-      const schema = document.getElementById('adminSchema').value.trim();
-      const expected = document.getElementById('adminExpected').value.trim();
-      const duration = parseInt(document.getElementById('adminDuration').value) || 0;
-      const assignedToRaw = document.getElementById('adminAssignedTo').value.trim();
-      const assignedTo = assignedToRaw ? assignedToRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
-      if(!title || !question){ alert('Title and question required'); return false; }
-      const id = Date.now();
-      const obj = { id, title, question, schema, expectedJSON: expected || '', duration, assignedTo };
-      // save to local list
-      const list = JSON.parse(localStorage.getItem(ASSIGN_KEY) || '[]');
-      list.unshift(obj);
-      localStorage.setItem(ASSIGN_KEY, JSON.stringify(list));
-      // try push to server
-      if(CONFIG.useServer) await serverCall('saveAssignment', obj);
-      resetForm();
-      Assignments.refreshUI();
-      return false;
-    }
-    function resetForm(){ document.getElementById('createForm').reset(); }
-    function deleteAll(){ if(!confirm('Delete all assignments locally?')) return; localStorage.removeItem(ASSIGN_KEY); if(CONFIG.useServer) serverCall('deleteAllAssignments', null); Assignments.refreshUI(); }
-    function exportResults(){
-      Assignments.exportResults();
-    }
-    async function syncFromServer(){
-      if(!CONFIG.useServer){ alert('No server configured'); return; }
-      const r = await serverCall('loadAssignments', null);
-      if(r && r.success){ localStorage.setItem(ASSIGN_KEY, JSON.stringify(r.data)); Assignments.refreshUI(); alert('Synced assignments from server'); }
-      else alert('Sync failed: ' + (r && r.error ? r.error : 'unknown'));
-    }
-    return { init, createAssignment, deleteAll, exportResults, syncFromServer };
-  })();
-
-  /********** Assignments core module (sql.js grading, Ace editor, tab-switch protection) **********/
-  const Assignments = (function(){
-    let assignments = [];
-    let results = {};
-    let current = null; // current assignment object
-    let timer = null; let timeLeft = 0; let isRunning = false;
-    let visibilitySwitchCount = 0; let warnedOnSwitch = false;
-
-    function init(){
-      loadAll();
-      // track visibility change for tab-switch protection
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-    }
-
-    function handleVisibilityChange(){
-      if(!isRunning) return;
-      if(document.hidden){
-        visibilitySwitchCount++;
-        if(visibilitySwitchCount === 1){
-          warnedOnSwitch = true;
-          alert('You switched tabs. Warning: switching tabs during a timed assignment is not allowed. Next switch will auto-submit.');
-        } else if(visibilitySwitchCount >= 2){
-          // auto-submit
-          alert('Second tab-switch detected — assignment will be auto-submitted now.');
-          autoSubmit();
-        }
-      }
-    }
-
-    function loadAll(){
-      assignments = JSON.parse(localStorage.getItem(ASSIGN_KEY) || '[]');
-      results = JSON.parse(localStorage.getItem(RESULTS_KEY) || '{}');
-      renderList();
-      populateSelect();
-      renderAdminArea();
-    }
-
-    function saveAll(){ localStorage.setItem(ASSIGN_KEY, JSON.stringify(assignments)); localStorage.setItem(RESULTS_KEY, JSON.stringify(results)); }
-
-    async function refreshUI(){
-      // try server fallback: attempt to load from server
-      if(CONFIG.useServer){
-        const r = await serverCall('loadAssignments', null);
-        if(r && r.success && Array.isArray(r.data)){ assignments = r.data; localStorage.setItem(ASSIGN_KEY, JSON.stringify(assignments)); }
-        const rr = await serverCall('loadResults', null);
-        if(rr && rr.success && rr.data){ results = rr.data; localStorage.setItem(RESULTS_KEY, JSON.stringify(results)); }
-      }
-      loadAll();
-      renderAdminArea();
-    }
-
-    function renderList(){
-      const div = document.getElementById('assignmentList'); div.innerHTML='';
-      const user = Auth.currentUser();
-      const list = assignments.filter(a=> {
-        if(!a.assignedTo || !a.assignedTo.length) return true;
-        if(!user) return false;
-        if(user.role === 'admin') return true;
-        return a.assignedTo.includes(user.username);
-      });
-      if(!list.length){ div.innerHTML = '<div class="text-muted">No assignments available.</div>'; return; }
-      list.forEach(a=>{
-        const el = document.createElement('div'); el.className='card mb-2';
-        el.innerHTML = `<div class="card-body"><strong>${a.title}</strong><div class="small text-muted">${a.question}</div><div class="mt-2 text-end"><button class="btn btn-sm btn-outline-primary" onclick="Assignments.open(${a.id})">Open</button></div></div>`;
-        div.appendChild(el);
-      });
-    }
-
-    function populateSelect(){
-      const sel = document.getElementById('assignmentSelect'); sel.innerHTML = '<option value="">-- Choose assignment --</option>';
-      const user = Auth.currentUser();
-      const list = assignments.filter(a=> {
-        if(!a.assignedTo || !a.assignedTo.length) return true;
-        if(!user) return false;
-        if(user.role === 'admin') return true;
-        return a.assignedTo.includes(user.username);
-      });
-      list.forEach(a=>{
-        const opt = document.createElement('option'); opt.value = a.id; opt.textContent = `Q${a.id}: ${a.title}`; sel.appendChild(opt);
-      });
-    }
-
-    function open(id){ document.getElementById('assignmentSelect').value = id; onSelect(); UI.showTab('assignments'); }
-
-    function onSelect(){
-      const sel = document.getElementById('assignmentSelect'); const id = sel.value;
-      if(!id){ document.getElementById('assignmentCard').classList.add('d-none'); return; }
-      const a = assignments.find(x=>String(x.id)===String(id));
-      if(!a) return;
-      current = a;
-      showAssignment(a);
-    }
-
-    function showAssignment(a){
-      // permission
-      const user = Auth.currentUser();
-      if(a.assignedTo && a.assignedTo.length && (!user || (user.role !== 'admin' && !a.assignedTo.includes(user.username)))){
-        alert('You are not assigned this assignment'); return;
-      }
-      document.getElementById('assignmentCard').classList.remove('d-none');
-      document.getElementById('assignmentHeader').innerHTML = `<strong>Q${a.id}: ${a.title}</strong><div class="small text-muted mt-1">${a.question}</div>`;
-      window.editor.setValue(a.schema ? '-- Schema loaded in background for tests\n\n' : '', -1);
-      // Put sample query into editor area (we'll show sample via button)
-      editor.setValue(a.sample || '', -1);
-      document.getElementById('assignmentResult').innerHTML = '';
-      // timer
-      if(a.duration && Number(a.duration) > 0){ document.getElementById('timerArea').classList.remove('d-none'); timeLeft = Number(a.duration); updateTimerUI(); document.getElementById('startBtn').classList.remove('d-none'); } else { document.getElementById('timerArea').classList.add('d-none'); }
-      updateSubmissionHistory();
-    }
-
-    function updateTimerUI(){
-      const mm = Math.floor(timeLeft/60).toString().padStart(2,'0'); const ss = (timeLeft%60).toString().padStart(2,'0');
-      document.getElementById('timeLeft').textContent = `${mm}:${ss}`; const a = current || {}; const pct = a.duration ? (timeLeft / a.duration) * 100 : 0; document.getElementById('timerBar').style.width = (pct)+'%';
-    }
-
-    function start(){
-      if(!current){ alert('Choose an assignment first'); return; }
-      if(isRunning){ alert('Already running'); return; }
-      if(current.duration && Number(current.duration) > 0){
-        isRunning = true; visibilitySwitchCount = 0; warnedOnSwitch = false;
-        document.getElementById('startBtn').textContent = 'Running...';
-        timer = setInterval(()=>{ timeLeft--; if(timeLeft<=0){ autoSubmit(); } else updateTimerUI(); }, 1000);
-      } else {
-        alert('This assignment has unlimited time — just write and submit.');
-      }
-    }
-
-    function autoSubmit(){
-      clearInterval(timer); timer=null; isRunning=false; document.getElementById('startBtn').textContent='Start';
-      submit(true);
-    }
-
-    async function submit(auto=false){
-      const user = Auth.currentUser(); if(!user){ Auth.showLoginModal(); return; }
-      if(!current){ alert('Select assignment first'); return; }
-      const sql = editor.getValue().trim();
-      if(!sql){ alert('Write SQL before submitting'); return; }
-      // Run test using sql.js: create a DB, run schema (if any), run student's query, compare with expected
-      let score = 0; let pass = false; let details = '';
-      if(SQL){
-        try {
-          const db = new SQL.Database();
-          if(current.schema && current.schema.trim()){
-            db.run(current.schema);
-          }
-          // run student's query
-          const res = db.exec(sql);
-          // normalize rowset as array of objects (use first result only)
-          const rows = [];
-          if(res && res.length){
-            const cols = res[0].columns; const values = res[0].values;
-            values.forEach(valRow=>{
-              const obj = {}; cols.forEach((c,i)=> obj[c]=valRow[i]); rows.push(obj);
-            });
-          }
-          // expected
-          let expectedRows = [];
-          if(current.expectedJSON && current.expectedJSON.trim()){
-            try { expectedRows = JSON.parse(current.expectedJSON); } catch(e){ expectedRows = []; }
-          }
-          // simple comparison: stringify arrays of rows (order-sensitive)
-          const got = JSON.stringify(rows); const exp = JSON.stringify(expectedRows);
-          pass = (exp === got);
-          details = `Expected: ${exp}\nGot: ${got}`;
-          score = pass ? 100 : 0;
-        } catch (e){
-          details = 'Error running SQL: ' + e.message;
-          score = 0;
-        }
-      } else {
-        // fallback heuristic
-        if(sql.toLowerCase().includes('select')) score += 50;
-        if(sql.toLowerCase().includes('from')) score += 30;
-        if(sql.toLowerCase().includes('where')) score += 20;
-        details = 'sql.js not available; heuristic grading applied.';
-      }
-
-      // record result
-      results[current.id] = results[current.id] || [];
-      const entry = { username: user.username, time: new Date().toISOString(), query: sql, score, pass };
-      results[current.id].unshift(entry);
-      if(results[current.id].length > 500) results[current.id].length = 500;
-      saveAll();
-      // push to server if configured
-      if(CONFIG.useServer) { serverCall('saveResult', { assignmentId: current.id, entry }).catch(()=>{}); }
-      // show result
-      document.getElementById('assignmentResult').innerHTML = `<div class="alert alert-${pass? 'success':'warning'}">Score: ${score}/100<br/><pre style="white-space:pre-wrap">${escapeHtml(details)}</pre></div>`;
-      updateSubmissionHistory();
-    }
-
-    function clearEditor(){ editor.setValue('', -1); document.getElementById('assignmentResult').innerHTML=''; }
-
-    function insertSample(){ if(current && current.sample) editor.setValue(current.sample, -1); else alert('No sample available'); }
-
-    function updateSubmissionHistory(){
-      const sel = document.getElementById('assignmentSelect'); const id = sel.value || (current ? current.id : null);
-      const hist = document.getElementById('submissionHistory'); hist.innerHTML = '';
-      if(!id){ hist.innerHTML = '<div class="text-muted">No assignment selected.</div>'; return; }
-      const list = results[id] || [];
-      const user = Auth.currentUser();
-      const visible = user && user.role === 'admin' ? list : list.filter(r=> r.username === (user?user.username:'')); 
-      if(!visible.length){ hist.innerHTML = '<div class="text-muted">No submissions yet.</div>'; return; }
-      const wrap = document.createElement('div'); wrap.className = 'list-group';
-      visible.forEach(r=>{
-        const el = document.createElement('div'); el.className='list-group-item small';
-        const t = new Date(r.time);
-        el.innerHTML = `<div><strong>${r.score}/100</strong> <span class="text-muted">— ${t.toLocaleString()} — <em>${r.username}</em></span></div><div class="mt-1 text-truncate-multi" title="${escapeHtml(r.query)}">${escapeHtml(r.query)}</div>`;
-        wrap.appendChild(el);
-      });
-      hist.appendChild(wrap);
-    }
-
-    function renderAdminArea(){
-      const panel = document.getElementById('adminPanel');
-      const user = Auth.currentUser();
-      if(user && user.role === 'admin'){ panel.classList.remove('d-none'); } else panel.classList.add('d-none');
-      // render admin results summary
-      const container = document.getElementById('adminResults'); container.innerHTML='';
-      assignments.forEach(a=>{
-        const rows = results[a.id] || []; const avg = rows.length ? Math.round(rows.reduce((s,x)=>s+x.score,0)/rows.length) : 0;
-        const div = document.createElement('div'); div.className='mb-2';
-        div.innerHTML = `<div class="fw-bold">Q${a.id}: ${a.title} — Avg: ${avg}/100 — Submissions: ${rows.length}</div><div class="small text-muted">${a.question}</div>`;
-        rows.slice(0,6).forEach(r=>{
-          const t = new Date(r.time);
-          const it = document.createElement('div'); it.className='small'; it.innerHTML = `<strong>${r.username}</strong> — ${r.score}/100 — ${t.toLocaleString()} <div class="text-truncate-multi" title="${escapeHtml(r.query)}">${escapeHtml(r.query)}</div>`; div.appendChild(it);
+        const hasNote = allNotes.some(n => {
+          const { day, monthNum, year } = parseNoteDate(n.date);
+          return day === dayStr && monthNum === currentMonthIndex + 1 && Number(year) === currentYear;
         });
-        container.appendChild(div);
+
+        const dayCell = document.createElement("div");
+        dayCell.className = "calendar-day" + (hasNote ? " has-notes" : "");
+        dayCell.textContent = d;
+
+        if (today.getMonth() === currentMonthIndex && today.getFullYear() === currentYear && today.getDate() === d) {
+          dayCell.classList.add("today");
+        }
+
+        dayCell.addEventListener("click", () => {
+          const filtered = allNotes.filter(n => {
+            const { day, monthNum, year } = parseNoteDate(n.date);
+            return day === dayStr && monthNum === currentMonthIndex + 1 && Number(year) === currentYear;
+          });
+          renderNotes(filtered);
+        });
+
+        calendar.appendChild(dayCell);
+      }
+
+      const totalCells = (firstDay - 1) + daysInMonth;
+      const trailing = (7 - (totalCells % 7)) % 7;
+      for (let i = 0; i < trailing; i++) {
+        const emptyCell = document.createElement("div");
+        emptyCell.className = "calendar-day";
+        calendar.appendChild(emptyCell);
+      }
+
+      calendarBody.appendChild(calendar);
+      card.appendChild(calendarBody);
+      container.appendChild(card);
+    }
+
+    function prevMonth() {
+      currentMonthIndex--;
+      if (currentMonthIndex < 0) {
+        currentMonthIndex = 11;
+        currentYear--;
+      }
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      currentMonthIndex++;
+      if (currentMonthIndex > 11) {
+        currentMonthIndex = 0;
+        currentYear++;
+      }
+      renderCalendar();
+    }
+
+    function renderNotes(notes) {
+      const container = document.getElementById("notesContainer");
+      const emptyState = document.getElementById("emptyState");
+      const clearBtn = document.getElementById("clearViewBtn");
+      container.innerHTML = "";
+
+      if (!notes.length) {
+        emptyState.classList.remove("d-none");
+        clearBtn.classList.add("d-none");
+        return;
+      }
+      emptyState.classList.add("d-none");
+
+      notes.forEach(n => {
+        const card = document.createElement("div");
+        card.className = "card mb-3 shadow-sm";
+        card.innerHTML = `
+          <div class="card-header bg-success text-white">
+            <strong>${n.date}</strong> – ${n.session} – ${n.title}
+          </div>
+          <div class="card-body">
+            <pre class="bg-light p-3 rounded"><code>${n.body}</code></pre>
+          </div>
+        `;
+        container.appendChild(card);
       });
+
+      clearBtn.classList.remove("d-none");
     }
 
-    function exportResults(){
-      const rows = [['assignmentId','username','score','time','query']];
-      Object.keys(results).forEach(aid => { (results[aid]||[]).forEach(r => rows.push([aid, r.username, r.score, r.time, r.query.replace(/\n/g,' ')])); });
-      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-      const blob = new Blob([csv], { type:'text/csv' }); const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download='assignment_results.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    function clearNotesView() {
+      document.getElementById("notesContainer").innerHTML = "";
+      document.getElementById("emptyState").classList.add("d-none");
+      document.getElementById("clearViewBtn").classList.add("d-none");
     }
 
-    // open assignment by id (external)
-    function openById(id){
-      document.getElementById('assignmentSelect').value = id; onSelect();
+    function downloadSQLFile(session, filename) {
+      const sessionNotes = allNotes.filter(n => n.session === session);
+      const sqlContent = sessionNotes
+        .map(n => `-- ${n.date} : ${n.title}\n${n.body}\n\n`)
+        .join("");
+      const blob = new Blob([sqlContent], { type: "text/sql" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      URL.revokeObjectURL(url);
+      showNotification(`${filename} has been updated and downloaded!`);
     }
 
-    return { init, refreshUI, renderList, populateSelect, open: openById, onSelect, start: start, submit, clearEditor, insertSample, exportResults, refreshUI: refreshUI };
-  })();
+    function showNotification(message) {
+      const notif = document.createElement("div");
+      notif.className = "alert alert-success text-center";
+      notif.textContent = message;
+      document.body.prepend(notif);
+      setTimeout(() => notif.remove(), 5000);
+    }
 
-  /********** Utilities **********/
-  function escapeHtml(t){ if(!t) return ''; return t.replace(/[&<>"'`=\/]/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;'})[s]); }
+    function updateLatestNotification() {
+      if (!allNotes.length) {
+        document.getElementById("latestNotification").textContent = "No notes available yet.";
+        return;
+      }
+      const sorted = [...allNotes].sort((a, b) => toJSDate(b.date) - toJSDate(a.date));
+      const latestDate = sorted[0].date;
+      const latestDayNotes = allNotes.filter(n => n.date === latestDate);
+      const latestNote = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
 
-  /********** Initialization & boot **********/
-  window.addEventListener('load', ()=>{ /* editor/sql init called earlier */ });
+      document.getElementById("latestNotification").textContent =
+        `🔔 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
+    }
 
-  // initial notes load (sql.js & ace init triggers loadNotes)
-  // Assignments init will run after sql.js ready in the earlier code.
+    // Boot original notes
+    loadNotes();
 
-  // Expose a few globals for buttons
-  const AssignmentsAPI = { submit: ()=>Assignments.submit(), start: ()=>Assignments.start() };
+    /* ---------------------------
+       ASSIGNMENT MODULE
+       - preserves original functionality
+       - uses Ace editor for SQL input
+       - uses localStorage for submissions
+       - optional Google Apps Script endpoint push (set GS_SCRIPT_URL)
+       --------------------------- */
+    const AssignmentModule = (function(){
+      // Config: put your Google Apps Script Web App URL here to send submissions to Google Sheets.
+      // Example: const GS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfy.../exec';
+      // If left blank, module will only use localStorage.
+      const GS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzShbVFdlHdtM9mQ0DbRR7zvEPvgwzuY7lYUSpiDs-Ak4RJ3gWaJzIVDbdVP8m4TduwEA/exec'; // <-- put your Apps Script URL here (leave empty to use local only)
 
-</script>
+      const STORAGE_KEY_SUBMISSIONS = 'assign_submissions_v1';
+      const STORAGE_KEY_STUDENT = 'assign_student_v1';
+      const ASSIGNMENT = {
+        id: 1,
+        title: 'SQL Basics Assignment',
+        question: `1) Create table EMP (ID INT, NAME TEXT, SALARY INT)\n2) Insert at least 3 rows\n3) Write a SELECT query to fetch employees with SALARY > 5000`,
+        sample: `-- Example sample (not executed here)\nSELECT * FROM EMP WHERE SALARY > 5000;`,
+        // No auto SQL execution engine here; we do keyword-based grading.
+      };
+
+      let editor = null;
+      let submissions = []; // array of { name, mobile, query, score, time }
+
+      function init(){
+        // load submissions
+        try { submissions = JSON.parse(localStorage.getItem(STORAGE_KEY_SUBMISSIONS) || '[]'); } catch(e){ submissions = []; }
+        // load student info (if already entered)
+        const savedStudent = JSON.parse(localStorage.getItem(STORAGE_KEY_STUDENT) || 'null');
+        if(savedStudent && savedStudent.name){
+          document.getElementById('studentName').value = savedStudent.name || '';
+          document.getElementById('studentMobile').value = savedStudent.mobile || '';
+          // if the saved student already submitted, show submitted state
+          if(hasSubmitted(savedStudent)){
+            showAlreadySubmitted();
+          }
+        }
+        // init Ace editor after DOM ready
+        setTimeout(()=>{ initAce(); }, 200);
+      }
+
+      function initAce(){
+        try {
+          editor = ace.edit('aceEditor', { mode: 'ace/mode/sql', theme: 'ace/theme/sqlserver' });
+          editor.session.setUseWrapMode(true);
+          editor.setValue(ASSIGNMENT.sample, -1);
+        } catch (e){
+          console.warn('Ace init failed', e);
+        }
+      }
+
+      function start(){
+        const name = document.getElementById('studentName').value.trim();
+        const mobile = document.getElementById('studentMobile').value.trim();
+        if(!name || !mobile){
+          alert('Please enter name and mobile number before starting the assignment.');
+          return;
+        }
+        const student = { name, mobile };
+        localStorage.setItem(STORAGE_KEY_STUDENT, JSON.stringify(student));
+        // check if this student already submitted
+        if(hasSubmitted(student)){
+          showAlreadySubmitted();
+          return;
+        }
+        // show assignment UI
+        document.getElementById('studentDetailsCard').classList.add('d-none');
+        document.getElementById('assignmentCard').classList.remove('d-none');
+        document.getElementById('assignmentTitle').textContent = ASSIGNMENT.title;
+        document.getElementById('assignmentQuestion').textContent = ASSIGNMENT.question;
+        document.getElementById('assignmentResult').innerHTML = '';
+      }
+
+      function cancel(){
+        // go back to details capture
+        document.getElementById('assignmentCard').classList.add('d-none');
+        document.getElementById('studentDetailsCard').classList.remove('d-none');
+      }
+
+      function clearStudentDetails(){
+        localStorage.removeItem(STORAGE_KEY_STUDENT);
+        document.getElementById('studentName').value = '';
+        document.getElementById('studentMobile').value = '';
+        if(editor) editor.setValue(ASSIGNMENT.sample, -1);
+        document.getElementById('assignmentCard').classList.add('d-none');
+        document.getElementById('alreadySubmittedCard').classList.add('d-none');
+        document.getElementById('studentDetailsCard').classList.remove('d-none');
+      }
+
+      function hasSubmitted(student){
+        if(!student) return false;
+        return submissions.some(s => s.name === student.name && s.mobile === student.mobile && s.assignmentId === ASSIGNMENT.id);
+      }
+
+      function showAlreadySubmitted(){
+        document.getElementById('studentDetailsCard').classList.add('d-none');
+        document.getElementById('assignmentCard').classList.add('d-none');
+        document.getElementById('alreadySubmittedCard').classList.remove('d-none');
+      }
+
+      function gradeQuery(query){
+        // Basic heuristic scoring out of 100:
+        // SELECT => 30, FROM => 20, WHERE => 20, CREATE => 15, INSERT => 15
+        let score = 0;
+        const q = query.toLowerCase();
+        if(q.includes('select')) score += 30;
+        if(q.includes('from')) score += 20;
+        if(q.includes('where')) score += 20;
+        if(q.includes('create')) score += 15;
+        if(q.includes('insert')) score += 15;
+        if(score > 100) score = 100;
+        return score;
+      }
+
+      async function submit(){
+        const student = JSON.parse(localStorage.getItem(STORAGE_KEY_STUDENT) || 'null');
+        if(!student || !student.name) { alert('Provide your details first'); return; }
+        // prevent double submit for same browser/student
+        if(hasSubmitted(student)){
+          alert('You have already submitted this assignment.');
+          showAlreadySubmitted();
+          return;
+        }
+        const query = editor ? editor.getValue().trim() : document.getElementById('assignmentEditorFallback') ? document.getElementById('assignmentEditorFallback').value.trim() : '';
+        if(!query){
+          alert('Please write your SQL before submitting.');
+          return;
+        }
+        const score = gradeQuery(query);
+        const entry = {
+          assignmentId: ASSIGNMENT.id,
+          name: student.name,
+          mobile: student.mobile,
+          query,
+          score,
+          submittedAt: new Date().toISOString()
+        };
+        submissions.unshift(entry);
+        localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(submissions));
+        // reflect submission UI
+        document.getElementById('assignmentResult').innerHTML = `<div class="alert alert-info">Submitted! Score: <strong>${score}</strong>/100</div>`;
+        document.getElementById('assignmentCard').classList.add('d-none');
+        document.getElementById('alreadySubmittedCard').classList.remove('d-none');
+        // attempt to send to Google Sheets if configured
+        if(GS_SCRIPT_URL && GS_SCRIPT_URL.trim()){
+          try {
+            await sendToServer(entry);
+          } catch (e){
+            console.warn('Send to server failed', e);
+          }
+        }
+      }
+
+      async function sendToServer(entry){
+        // POST JSON to the Apps Script endpoint (you must implement doPost in Apps Script to accept this)
+        // Payload structure: { action: 'submitAssignment', payload: entry }
+        const payload = { action: 'submitAssignment', payload: entry };
+        try {
+          const res = await fetch(GS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const text = await res.text();
+          // Not mandatory to parse response; Apps Script can return simple text
+          console.log('GS response:', text);
+        } catch (e){
+          console.warn('Failed to send to Google Apps Script', e);
+        }
+      }
+
+      function insertSample(){
+        if(editor) editor.setValue(ASSIGNMENT.sample, -1);
+      }
+
+      // ADMIN VIEW - shows local submissions in modal
+      function showAdminView(){
+        const modal = document.getElementById('adminModal');
+        const body = document.getElementById('adminModalBody');
+        body.innerHTML = '';
+        const data = submissions.slice(); // copy
+        if(!data.length){
+          body.innerHTML = '<div class="text-muted">No submissions yet.</div>';
+        } else {
+          const table = document.createElement('table');
+          table.className = 'table table-sm';
+          table.innerHTML = `<thead><tr><th>#</th><th>Name</th><th>Mobile</th><th>Score</th><th>Submitted At</th><th>Query</th></tr></thead>`;
+          const tb = document.createElement('tbody');
+          data.forEach((r, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${idx+1}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.mobile)}</td><td>${r.score}</td><td>${new Date(r.submittedAt).toLocaleString()}</td><td><pre style="white-space:pre-wrap">${escapeHtml(r.query)}</pre></td>`;
+            tb.appendChild(tr);
+          });
+          table.appendChild(tb);
+          body.appendChild(table);
+        }
+        modal.style.display = 'block';
+      }
+
+      function exportCSV(){
+        const data = submissions.slice();
+        if(!data.length){ alert('No submissions to export'); return; }
+        const rows = [['assignmentId','name','mobile','score','submittedAt','query']];
+        data.forEach(r => rows.push([r.assignmentId, r.name, r.mobile, r.score, r.submittedAt, r.query.replace(/\n/g,' ')]));
+        const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'submissions.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      }
+
+      // minimal escape helper
+      function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"'`=\/]/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'})[ch]; }); }
+
+      // expose public API
+      return {
+        init, start, submit, insertSample, cancel, clearStudentDetails, showAdminView, exportCSV
+      };
+    })();
+
+    // Initialize assignment module after page load
+    window.addEventListener('load', function(){
+      AssignmentModule.init();
+      // Admin modal close on outside click
+      document.getElementById('adminModal').addEventListener('click', function(e){
+        if(e.target === this) this.style.display = 'none';
+      });
+    });
+
+    // Expose admin modal button
+    window.AssignmentModule = AssignmentModule;
+  </script>
 </body>
 </html>
