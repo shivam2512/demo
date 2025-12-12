@@ -1,1229 +1,801 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Practice Session Notes</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>Practice Session Notes — LMS (Ace + sql.js + Google Sheets)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
   <style>
     pre { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
-
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 6px;
-      margin-top: 10px;
-    }
-    .weekday {
-      font-weight: 600;
-      text-align: center;
-      color: #495057;
-      padding: 6px 0;
-      background: #f8f9fa;
-      border-radius: 0.5rem;
-      border: 1px solid #e9ecef;
-    }
-    .calendar-day {
-      border: 1px solid #dee2e6;
-      padding: 12px;
-      text-align: center;
-      cursor: pointer;
-      min-height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 0.6rem;
-      background-color: #ffffff;
-      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
-      font-weight: 500;
-    }
-    .calendar-day.has-notes {
-      background: linear-gradient(135deg, #d1e7dd, #b6e0c2);
-      color: #0f5132;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
-      border-color: #b6e0c2;
-    }
-    .calendar-day.today {
-      background: linear-gradient(135deg, #fff3cd, #ffe69c);
-      color: #664d03;
-      border-color: #ffe69c;
-      box-shadow: 0 3px 10px rgba(255, 193, 7, 0.25);
-      font-weight: 700;
-    }
-    .calendar-day:hover {
-      transform: translateY(-2px);
-      background: linear-gradient(135deg, #f8d7da, #f5c2c7);
-      color: #842029;
-      box-shadow: 0 6px 16px rgba(220, 53, 69, 0.25);
-      border-color: #f5c2c7;
-    }
-    .month-header { background: linear-gradient(90deg, #0d6efd, #6610f2); }
-    #calendarContainer .card { border: none; overflow: hidden; }
-
-    @media (max-width: 576px) {
-      .calendar { grid-template-columns: repeat(3, 1fr); }
-      .weekday { font-size: 0.8rem; padding: 4px 0; }
-      .calendar-day { min-height: 52px; font-size: 0.9rem; padding: 8px; }
-      .btn { width: 100%; }
-      .nav-controls h4 { font-size: 1rem; margin: 0 8px; }
-    }
+    .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+    .weekday { font-weight: 600; text-align: center; color: #495057; padding: 6px 0; background: #f8f9fa; border-radius: .5rem; border:1px solid #e9ecef; }
+    .calendar-day { border:1px solid #dee2e6; padding:12px; text-align:center; cursor:pointer; min-height:70px; display:flex; align-items:center; justify-content:center; border-radius:.6rem; background:#fff; transition: transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease; font-weight:500; }
+    .calendar-day.has-notes { background: linear-gradient(135deg,#d1e7dd,#b6e0c2); color:#0f5132; box-shadow:0 2px 8px rgba(16,185,129,.25); border-color:#b6e0c2; }
+    .calendar-day.today { background:linear-gradient(135deg,#fff3cd,#ffe69c); color:#664d03; border-color:#ffe69c; box-shadow:0 3px 10px rgba(255,193,7,.25); font-weight:700; }
+    .calendar-day:hover{ transform:translateY(-2px); background:linear-gradient(135deg,#f8d7da,#f5c2c7); color:#842029; box-shadow:0 6px 16px rgba(220,53,69,.25); border-color:#f5c2c7; }
+    @media (max-width:576px){ .calendar{ grid-template-columns: repeat(3,1fr);} .weekday{font-size:.8rem;} .calendar-day{min-height:52px; font-size:.9rem; padding:8px;} }
+    .text-truncate-multi { overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; }
+    .ace_editor { height: 280px; width: 100%; border: 1px solid #ddd; border-radius:4px; }
+    .modal { position: fixed; top: 0; left: 0; width:100%; height:100%; z-index: 1050; display: none; background: rgba(0,0,0,0.35); }
+    .modal .modal-dialog { margin: 6rem auto; }
   </style>
 </head>
 <body>
   <nav class="navbar navbar-dark bg-dark">
-    <div class="container">
+    <div class="container d-flex gap-2 align-items-center">
       <span class="navbar-brand">Practice Session Notes</span>
-      <!-- Add this inside your existing <nav> container, e.g. next to the <span class="navbar-brand"> -->
-<button id="openAssignmentsBtn" class="btn btn-warning ms-auto" onclick="AssignmentModule.openAssignments()">Assignments</button>
-<!-- Login button (place inside the same .container as navbar-brand) -->
-<button id="openLoginBtn" class="btn btn-outline-light ms-2" onclick="AuthModule.showLoginModal()">Login</button>
-<span id="loggedInUserBadge" class="badge bg-info text-dark ms-2 d-none"></span>
+      <div class="btn-group ms-3" role="group" aria-label="tabs">
+        <button id="notesTabBtn" class="btn btn-outline-light active" onclick="UI.showTab('notes')">Notes</button>
+        <button id="assignTabBtn" class="btn btn-outline-light" onclick="UI.showTab('assignments')">Assignments</button>
+        <button id="profileTabBtn" class="btn btn-outline-light" onclick="UI.showTab('profile')">Profile</button>
+      </div>
 
+      <div class="ms-auto d-flex gap-2 align-items-center">
+        <span id="loggedInUserBadge" class="badge bg-info text-dark d-none"></span>
+        <span id="roleBadge" class="badge bg-secondary d-none"></span>
+        <button id="openLoginBtn" class="btn btn-outline-light" onclick="Auth.showLoginModal()">Login</button>
+        <button id="openRegisterBtn" class="btn btn-outline-light d-none" onclick="Auth.showRegisterModal()">Register</button>
+        <button id="logoutBtn" class="btn btn-outline-danger d-none" onclick="Auth.logout()">Logout</button>
+      </div>
     </div>
   </nav>
 
-  <div id="latestNotification" class="alert alert-info text-center mb-0">
-    Latest notes: Loading…
-  </div>
-<!-- Login Modal -->
-<div id="loginModal" class="modal" tabindex="-1" style="display:none; background: rgba(0,0,0,0.4);">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Sign In</h5>
-        <button type="button" class="btn-close" onclick="AuthModule.hideLoginModal()"></button>
-      </div>
-      <div class="modal-body">
-        <div id="loginError" class="text-danger small mb-2 d-none"></div>
-        <div class="mb-2">
-          <input id="loginUsername" class="form-control" placeholder="Username">
+  <div id="latestNotification" class="alert alert-info text-center mb-0">Latest notes: Loading…</div>
+
+  <!-- LOGIN MODAL -->
+  <div id="loginModal" class="modal" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Sign In</h5><button class="btn-close" onclick="Auth.hideLoginModal()"></button></div>
+        <div class="modal-body">
+          <div id="loginError" class="text-danger small mb-2 d-none"></div>
+          <input id="loginUsername" class="form-control mb-2" placeholder="Username">
+          <input id="loginPassword" type="password" class="form-control mb-2" placeholder="Password">
+          <div class="form-text small text-muted">Default admin: <code>admin / admin123</code>; student: <code>student / student123</code></div>
         </div>
-        <div class="mb-2">
-          <input id="loginPassword" type="password" class="form-control" placeholder="Password">
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="Auth.hideLoginModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="Auth.login()">Sign in</button>
         </div>
-        <div class="form-text small text-muted">Default admin: <code>admin / admin123</code>; default student: <code>student / student123</code></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="AuthModule.hideLoginModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="AuthModule.login()">Sign in</button>
       </div>
     </div>
   </div>
-</div>
+
+  <!-- REGISTER MODAL -->
+  <div id="registerModal" class="modal">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Register</h5><button class="btn-close" onclick="Auth.hideRegisterModal()"></button></div>
+        <div class="modal-body">
+          <div id="regError" class="text-danger small mb-2 d-none"></div>
+          <input id="regUsername" class="form-control mb-2" placeholder="Username">
+          <input id="regPassword" type="password" class="form-control mb-2" placeholder="Password">
+          <select id="regRole" class="form-select mb-2"><option value="student">Student</option><option value="admin">Admin</option></select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="Auth.hideRegisterModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="Auth.register()">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHANGE PASSWORD / PROFILE MODAL -->
+  <div id="profileModal" class="modal">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Profile</h5><button class="btn-close" onclick="Profile.hideModal()"></button></div>
+        <div class="modal-body">
+          <div id="profileMsg" class="text-success small d-none mb-2"></div>
+          <input id="profileUsername" class="form-control mb-2" disabled>
+          <input id="profileNewPassword" type="password" class="form-control mb-2" placeholder="New password (leave blank to keep)">
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="Profile.hideModal()">Close</button>
+          <button class="btn btn-primary" onclick="Profile.changePassword()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <main class="container py-4">
-    <div class="mb-3 d-flex gap-2 flex-wrap">
-      <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download Afternoon Notes</button>
-      <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download Evening Notes</button>
-    </div>
-
-    <!-- Navigation arrows -->
-    <div class="nav-controls d-flex justify-content-between align-items-center mb-2">
-      <button class="btn btn-outline-secondary" onclick="prevMonth()">← Previous</button>
-      <h4 id="monthLabel" class="fw-bold mb-0"></h4>
-      <button class="btn btn-outline-secondary" onclick="nextMonth()">Next →</button>
-    </div>
-
-    <div id="calendarContainer" class="mb-4"></div>
-
-    <div id="notesContainer"></div>
-    <div id="emptyState" class="text-center text-muted py-5 d-none">
-      <h5>No notes yet</h5>
-    </div>
-<!-- ===== ASSIGNMENTS SECTION (with login & admin controls) ===== -->
-<div id="assignmentsSection" class="container py-4 d-none">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">SQL Assignments</h3>
-    <div>
-      <button class="btn btn-outline-secondary me-2" onclick="AssignmentModule.closeAssignments()">← Back</button>
-      <span id="roleBadge" class="badge bg-secondary me-2 d-none"></span>
-      <button id="logoutBtn" class="btn btn-outline-danger d-none" onclick="AuthModule.logout()">Logout</button>
-    </div>
-  </div>
-
-  <div id="assignmentArea" class="mb-4">
-    <div id="assignmentInfo" class="mb-2">
-      <small class="text-muted">Choose a question, write the SQL in the editor and submit. Results are scored (basic checks) and saved to your account.</small>
-    </div>
-
-    <div class="row g-3">
-      <div class="col-md-5">
-        <div id="assignmentQuestions" class="mb-3"></div>
-
-        <div class="mb-3">
-          <label for="assignmentSelect" class="form-label">Select Question</label>
-          <select id="assignmentSelect" class="form-select" onchange="AssignmentModule.onQuestionChange()">
-            <option value="">Loading…</option>
-          </select>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Submission History</label>
-          <div id="submissionHistory" class="small text-muted"></div>
-        </div>
+    <!-- NOTES TAB -->
+    <section id="notesTab" class="tab-pane">
+      <div class="mb-3 d-flex gap-2 flex-wrap">
+        <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download Afternoon Notes</button>
+        <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download Evening Notes</button>
       </div>
 
-      <div class="col-md-7">
-        <label class="form-label">SQL Editor</label>
-        <textarea id="sqlEditor" class="form-control" rows="10" placeholder="Write SQL here (e.g. SELECT * FROM students WHERE marks > 80);"></textarea>
+      <div class="nav-controls d-flex justify-content-between align-items-center mb-2">
+        <button class="btn btn-outline-secondary" onclick="prevMonth()">← Previous</button>
+        <h4 id="monthLabel" class="fw-bold mb-0"></h4>
+        <button class="btn btn-outline-secondary" onclick="nextMonth()">Next →</button>
+      </div>
 
-        <div class="mt-3 d-flex gap-2">
-          <button id="submitBtn" class="btn btn-success" onclick="AssignmentModule.submitAssignment()">Submit Assignment</button>
-          <button class="btn btn-secondary" onclick="AssignmentModule.clearEditor()">Clear</button>
-          <button class="btn btn-outline-info" onclick="AssignmentModule.showSample()">Show Sample</button>
+      <div id="calendarContainer" class="mb-4"></div>
+      <div id="notesContainer"></div>
+      <div id="emptyState" class="text-center text-muted py-5 d-none"><h5>No notes yet</h5></div>
+    </section>
+
+    <!-- ASSIGNMENTS TAB -->
+    <section id="assignmentsTab" class="tab-pane d-none">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">Assignments</h3>
+        <div><small class="text-muted">Use Ace editor (SQL), testcases run in-browser via sql.js</small></div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-4">
+          <div id="assignmentList" class="mb-3"></div>
+
+          <div class="mb-3">
+            <label class="form-label">Choose</label>
+            <select id="assignmentSelect" class="form-select" onchange="Assignments.onSelect()"><option value="">-- Choose assignment --</option></select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Submission History</label>
+            <div id="submissionHistory" class="small text-muted"></div>
+          </div>
         </div>
 
-        <div id="scoreCard" class="alert alert-info mt-4 d-none"></div>
-      </div>
-    </div>
-  </div>
+        <div class="col-lg-8">
+          <div id="assignmentCard" class="card mb-3 d-none">
+            <div class="card-body">
+              <div id="assignmentHeader" class="mb-2"></div>
 
-  <!-- Admin panel (only visible to admin role) -->
-  <div id="adminPanel" class="mt-4 d-none">
-    <h5>Admin Controls</h5>
-    <div class="card mb-3">
-      <div class="card-body">
-        <form id="createAssignmentForm" onsubmit="return AssignmentModule.createAssignmentFromForm(event)">
-          <div class="mb-2">
-            <input id="newAssignTitle" class="form-control" placeholder="Title" required>
-          </div>
-          <div class="mb-2">
-            <textarea id="newAssignQuestion" class="form-control" rows="2" placeholder="Question text" required></textarea>
-          </div>
-          <div class="mb-2">
-            <input id="newAssignDuration" class="form-control" placeholder="Duration (seconds, optional)">
-            <small class="text-muted">Leave blank for unlimited.</small>
-          </div>
-          <div class="mb-2">
-            <input id="newAssignAssignedTo" class="form-control" placeholder="Assign to (comma separated usernames or leave blank for all)">
-            <small class="text-muted">Example: <code>student,rahul</code></small>
-          </div>
-          <div class="d-flex gap-2">
-            <button class="btn btn-primary">Create Assignment</button>
-            <button class="btn btn-outline-danger" type="button" onclick="AssignmentModule.deleteAllAssignments()">Delete All (danger)</button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <div id="timerArea" class="mb-2 d-none">
+                <div>Time left: <span id="timeLeft">--:--</span></div>
+                <div class="progress mt-1"><div id="timerBar" class="progress-bar" style="width:0%"></div></div>
+              </div>
 
-    <div class="card">
-      <div class="card-body">
-        <h6>All Results</h6>
-        <div id="adminResults" class="small text-muted"></div>
-        <div class="mt-3">
-          <button class="btn btn-sm btn-outline-secondary" onclick="AssignmentModule.exportResultsCSV()">Export CSV</button>
+              <div>
+                <label class="form-label">SQL Editor</label>
+                <div id="aceEditor" class="ace_editor"></div>
+              </div>
+
+              <div class="mt-2 d-flex gap-2">
+                <button id="startBtn" class="btn btn-outline-primary" onclick="Assignments.start()">Start</button>
+                <button id="submitBtn" class="btn btn-success" onclick="Assignments.submit()">Submit</button>
+                <button id="sampleBtn" class="btn btn-outline-info" onclick="Assignments.insertSample()">Show Sample</button>
+                <button class="btn btn-secondary" onclick="Assignments.clearEditor()">Clear</button>
+              </div>
+
+              <div id="assignmentResult" class="mt-3"></div>
+            </div>
+          </div>
+
+          <div id="scoreCard" class="alert alert-info d-none"></div>
+
+          <!-- admin panel -->
+          <div id="adminPanel" class="card d-none">
+            <div class="card-body">
+              <h5>Admin Controls</h5>
+              <form id="createForm" onsubmit="return Admin.createAssignment(event)">
+                <input id="adminTitle" class="form-control mb-2" placeholder="Title" required>
+                <textarea id="adminQuestion" class="form-control mb-2" placeholder="Question text" rows="2" required></textarea>
+                <textarea id="adminSchema" class="form-control mb-2" placeholder="Schema + seed SQL (CREATE TABLE/INSERT... used to build test DB)" rows="4"></textarea>
+                <textarea id="adminExpected" class="form-control mb-2" placeholder="Expected result JSON (array of rows) e.g. [{&quot;name&quot;:&quot;A&quot;}] " rows="3"></textarea>
+                <input id="adminDuration" class="form-control mb-2" placeholder="Duration in seconds (0 = unlimited)">
+                <input id="adminAssignedTo" class="form-control mb-2" placeholder="Assign to (comma-separated usernames)">
+                <div class="d-flex gap-2">
+                  <button class="btn btn-primary">Create</button>
+                  <button type="button" class="btn btn-outline-danger" onclick="Admin.deleteAll()">Delete All</button>
+                  <button type="button" class="btn btn-outline-secondary" onclick="Admin.exportResults()">Export Results</button>
+                  <button type="button" class="btn btn-outline-success" onclick="Admin.syncFromServer()">Sync From Sheets</button>
+                </div>
+              </form>
+
+              <hr>
+              <div id="adminResults" class="small text-muted"></div>
+            </div>
+          </div>
+
         </div>
       </div>
-    </div>
-  </div>
-</div>
-<!-- ===== end assignments section ===== -->
+    </section>
 
-    <div class="text-center mt-3">
-      <button class="btn btn-outline-secondary d-none" id="clearViewBtn" onclick="clearNotesView()">Clear View</button>
-    </div>
+    <!-- PROFILE TAB -->
+    <section id="profileTab" class="tab-pane d-none">
+      <div class="card">
+        <div class="card-body">
+          <h5>Your Profile</h5>
+          <div id="profileInfo" class="mb-3"></div>
+          <button class="btn btn-outline-primary" onclick="Profile.openModal()">Change Password</button>
+        </div>
+      </div>
+    </section>
   </main>
 
+  <!-- Libraries: Ace + sql.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.9.15/ace.js" integrity="" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
   <script>
-    let allNotes = [];
-    let currentMonthIndex, currentYear;
+/* ================= CONFIG ================ */
+/*
+ * Replace APPS_SCRIPT_URL with your Google Apps Script Web App URL (deployed as Web App).
+ * The web app should accept POST JSON { action: "...", payload: ... } and respond JSON { success:true, data: ... }
+ * Minimal actions used in code:
+ * - loadAssignments -> returns array of assignments
+ * - saveAssignment -> payload: assignment object -> returns saved assignment
+ * - loadResults -> returns results object
+ * - saveResult -> payload: { assignmentId, entry } -> returns success
+ * - loadUsers -> returns user list
+ * - saveUsers -> payload: users array
+ *
+ * If APPS_SCRIPT_URL is empty or fetch fails, the app falls back to localStorage.
+ */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzShbVFdlHdtM9mQ0DbRR7zvEPvgwzuY7lYUSpiDs-Ak4RJ3gWaJzIVDbdVP8m4TduwEA/exec'; // <-- PUT your Apps Script Web App URL HERE (or leave empty to use localStorage fallback)
 
-    const monthMap = {
-      JAN: "01", FEB: "02", MAR: "03", APR: "04", MAY: "05", JUN: "06",
-      JUL: "07", AUG: "08", SEP: "09", OCT: "10", NOV: "11", DEC: "12"
-    };
-    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const CONFIG = {
+  useServer: !!APPS_SCRIPT_URL,
+  serverTimeoutMs: 8000
+};
+/* ========================================= */
 
-    function parseNoteDate(str) {
-      // Expects DD-MMM-YYYY (e.g., 04-DEC-2025)
-      const [d, mText, y] = str.split("-");
-      const mNum = Number(monthMap[mText.toUpperCase()]);
-      return { day: d, monthNum: mNum, monthText: mText.toUpperCase(), year: y };
-    }
+  /********** Original notes/calendar functions (kept intact) **********/
+  let allNotes = [];
+  let currentMonthIndex, currentYear;
+  const monthMap = { JAN:"01", FEB:"02", MAR:"03", APR:"04", MAY:"05", JUN:"06", JUL:"07", AUG:"08", SEP:"09", OCT:"10", NOV:"11", DEC:"12" };
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-    function toJSDate(str) {
-      const { day, monthNum, year } = parseNoteDate(str);
-      return new Date(Number(year), monthNum - 1, Number(day));
-    }
+  function parseNoteDate(str){ const [d,mText,y] = str.split("-"); const mNum = Number(monthMap[mText.toUpperCase()]); return { day:d, monthNum:mNum, monthText:mText.toUpperCase(), year:y }; }
+  function toJSDate(str){ const {day, monthNum, year} = parseNoteDate(str); return new Date(Number(year), monthNum-1, Number(day)); }
 
-    async function loadNotes() {
-      try {
-        const res = await fetch("notes.json");
-        const notes = await res.json();
-        allNotes = notes;
-
-        const today = new Date();
-        currentMonthIndex = today.getMonth();
-        currentYear = today.getFullYear();
-
-        renderCalendar();
-        updateLatestNotification();
-      } catch (err) {
-        console.error("Error loading notes:", err);
-        document.getElementById("latestNotification").textContent = "Failed to load notes.";
-      }
-    }
-    /* ============== AssignmentModule (self-contained) ============== */
-const AssignmentModule = (function () {
-  const ASSIGNMENTS_FILE = "assignments.json"; // create this file (see below)
-  const STORAGE_KEY = "assignment_submissions_v1";
-  let assignments = [];
-  let submissions = loadSubmissions(); // { assignmentId: [ {time, query, score} ] }
-
-  function loadSubmissions() {
+  async function loadNotes(){
     try {
-      const s = localStorage.getItem(STORAGE_KEY);
-      return s ? JSON.parse(s) : {};
-    } catch (e) {
-      console.error("Failed to parse submissions:", e);
-      return {};
-    }
-  }
-
-  function saveSubmissions() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(submissions));
-    } catch (e) {
-      console.error("Failed to save submissions:", e);
-    }
-  }
-
-  async function loadAssignments() {
-    try {
-      const res = await fetch(ASSIGNMENTS_FILE);
-      assignments = await res.json();
-      renderQuestions();
-      populateSelect();
-    } catch (err) {
-      console.error("Error loading assignments:", err);
-      document.getElementById("assignmentQuestions").innerHTML = `<div class="text-danger">Failed to load assignments.</div>`;
-    }
-  }
-
-  function renderQuestions() {
-    const container = document.getElementById("assignmentQuestions");
-    container.innerHTML = "";
-    assignments.forEach(a => {
-      const card = document.createElement("div");
-      card.className = "card mb-2";
-      card.innerHTML = `
-        <div class="card-body">
-          <strong>Q${a.id}:</strong> ${a.question}
-        </div>
-      `;
-      container.appendChild(card);
-    });
-  }
-
-  function populateSelect() {
-    const sel = document.getElementById("assignmentSelect");
-    sel.innerHTML = '<option value="">-- Choose question --</option>';
-    assignments.forEach(a => {
-      const opt = document.createElement("option");
-      opt.value = a.id;
-      opt.textContent = `Q${a.id}: ${a.title || a.question.slice(0, 60)}`;
-      sel.appendChild(opt);
-    });
-  }
-
-  function openAssignments() {
-    // hide calendar/notes (preserve original elements)
-    const calendar = document.getElementById("calendarContainer");
-    const notes = document.getElementById("notesContainer");
-    const empty = document.getElementById("emptyState");
-    if (calendar) calendar.classList.add("d-none");
-    if (notes) notes.classList.add("d-none");
-    if (empty) empty.classList.add("d-none");
-
-    // show assignments
-    document.getElementById("assignmentsSection").classList.remove("d-none");
-    document.getElementById("clearViewBtn")?.classList.add("d-none");
-
-    // load assignments once
-    if (!assignments?.length) loadAssignments();
-
-    updateSubmissionHistory();
-    // clear prior score area
-    hideScore();
-  }
-
-  function closeAssignments() {
-    document.getElementById("assignmentsSection").classList.add("d-none");
-
-    // restore calendar/notes view exactly as before
-    const calendar = document.getElementById("calendarContainer");
-    const notes = document.getElementById("notesContainer");
-    const empty = document.getElementById("emptyState");
-    if (calendar) calendar.classList.remove("d-none");
-    if (notes) notes.classList.remove("d-none");
-    // don't force emptyState; original logic will handle it
-    hideScore();
-  }
-
-  function onQuestionChange() {
-    const sel = document.getElementById("assignmentSelect");
-    const val = sel.value;
-    const q = assignments.find(a => String(a.id) === String(val));
-    if (!q) {
-      document.getElementById("sqlEditor").placeholder = "Write SQL here...";
-      return;
-    }
-    // show selected question in header (optional)
-    document.getElementById("assignmentInfo").innerHTML =
-      `<div><strong>Selected:</strong> Q${q.id} — ${q.question}</div><small class="text-muted">${q.hint ? "Hint: " + q.hint : ""}</small>`;
-    updateSubmissionHistory();
-  }
-
-  function basicScoreForQuery(query, question) {
-    // Simple heuristic scoring:
-    // - contains SELECT => +40
-    // - contains FROM => +30
-    // - contains WHERE (if question expects filtering) => +20
-    // - mentions table name from question (if provided) => +10
-    let score = 0;
-    const qlow = query.toLowerCase();
-    if (qlow.includes("select")) score += 40;
-    if (qlow.includes("from")) score += 30;
-    if (qlow.includes("where")) score += 20;
-    // check for table tokens in question (if present)
-    if (question && question.tables && Array.isArray(question.tables)) {
-      question.tables.forEach(t => {
-        if (qlow.includes(t.toLowerCase())) score += 10;
-      });
-    } else {
-      // if question mentions common words like 'students' or 'employees', try to match
-      if (question && /students|student|employees|employee|marks|salary|emp\b/i.test(question.question || "")) {
-        const maybeTable = (question.question.match(/students|employees|marks|emp[s]?\b/i) || [])[0];
-        if (maybeTable && qlow.includes(maybeTable.toLowerCase())) score += 10;
-      }
-    }
-    // cap at 100
-    return Math.min(100, score);
-  }
-
-  function submitAssignment() {
-    const sel = document.getElementById("assignmentSelect");
-    const assignmentId = sel.value;
-    const query = document.getElementById("sqlEditor").value.trim();
-    if (!assignmentId) {
-      showScore("Please select a question before submitting.", "danger");
-      return;
-    }
-    if (!query) {
-      showScore("Please write your SQL answer before submitting.", "danger");
-      return;
-    }
-    const question = assignments.find(a => String(a.id) === String(assignmentId));
-    const score = basicScoreForQuery(query, question);
-
-    // record submission
-    const entry = {
-      time: new Date().toISOString(),
-      query,
-      score
-    };
-    submissions[assignmentId] = submissions[assignmentId] || [];
-    submissions[assignmentId].unshift(entry); // newest first
-    // keep only last 10 submissions per question
-    if (submissions[assignmentId].length > 10) submissions[assignmentId].length = 10;
-    saveSubmissions();
-
-    showScore(`Your assignment is submitted! Score: ${score}/100`, "info");
-    updateSubmissionHistory();
-  }
-
-  function updateSubmissionHistory() {
-    const sel = document.getElementById("assignmentSelect");
-    const assignmentId = sel.value;
-    const histContainer = document.getElementById("submissionHistory");
-    histContainer.innerHTML = "";
-
-    if (!assignmentId) {
-      histContainer.innerHTML = `<div class="text-muted">No question selected.</div>`;
-      return;
-    }
-    const list = submissions[assignmentId] || [];
-    if (!list.length) {
-      histContainer.innerHTML = `<div class="text-muted">No submissions yet for this question.</div>`;
-      return;
-    }
-    // present list
-    const ul = document.createElement("div");
-    ul.className = "list-group";
-    list.forEach(s => {
-      const item = document.createElement("div");
-      item.className = "list-group-item small";
-      const t = new Date(s.time);
-      item.innerHTML = `<div><strong>${s.score}/100</strong> <span class="text-muted">— ${t.toLocaleString()}</span></div>
-                        <div class="mt-1 text-truncate" title="${escapeHtml(s.query)}">${escapeHtml(s.query)}</div>`;
-      ul.appendChild(item);
-    });
-    histContainer.appendChild(ul);
-  }
-
-  function clearEditor() {
-    document.getElementById("sqlEditor").value = "";
-    hideScore();
-  }
-
-  function showSample() {
-    const sel = document.getElementById("assignmentSelect");
-    const assignmentId = sel.value;
-    const question = assignments.find(a => String(a.id) === String(assignmentId));
-    if (!question) {
-      showScore("Select a question first to see a sample.", "danger");
-      return;
-    }
-    // show a gentle sample template if available
-    const sample = question.sample || `-- Example:\n-- SELECT * FROM students WHERE marks > 80;`;
-    document.getElementById("sqlEditor").value = sample;
-  }
-
-  function showScore(message, type = "info") {
-    const sc = document.getElementById("scoreCard");
-    sc.className = `alert alert-${type} mt-4`;
-    sc.textContent = message;
-    sc.classList.remove("d-none");
-  }
-
-  function hideScore() {
-    const sc = document.getElementById("scoreCard");
-    sc.classList.add("d-none");
-  }
-
-  function escapeHtml(text) {
-    if (!text) return "";
-    return text.replace(/[&<>"'`=\/]/g, function (s) {
-      return ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
-        "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
-      })[s];
-    });
-  }
-
-  // Public API
-  return {
-    openAssignments,
-    closeAssignments,
-    submitAssignment,
-    clearEditor,
-    onQuestionChange,
-    showSample
-  };
-})();
-
-
-    function renderCalendar() {
-      const container = document.getElementById("calendarContainer");
-      container.innerHTML = "";
-
-      // Header label
-      document.getElementById("monthLabel").textContent = `${monthNames[currentMonthIndex]} ${currentYear}`;
-
-      // Compute month layout
-      const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
-      let firstDay = new Date(currentYear, currentMonthIndex, 1).getDay(); // 0=Sun..6=Sat
-      firstDay = firstDay === 0 ? 7 : firstDay; // Monday-first grid: shift Sunday to 7
-
-      // Card container
-      const card = document.createElement("div");
-      card.className = "card shadow-lg";
-
-      const calendarBody = document.createElement("div");
-      calendarBody.className = "card-body";
-
-      // Weekday labels (Mon-first)
-      const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-      const weekdayRow = document.createElement("div");
-      weekdayRow.className = "calendar";
-      weekdays.forEach(w => {
-        const wd = document.createElement("div");
-        wd.className = "weekday";
-        wd.textContent = w;
-        weekdayRow.appendChild(wd);
-      });
-      calendarBody.appendChild(weekdayRow);
-
-      // Calendar grid
-      const calendar = document.createElement("div");
-      calendar.className = "calendar";
-
-      // Leading blanks
-      for (let i = 1; i < firstDay; i++) {
-        const emptyCell = document.createElement("div");
-        emptyCell.className = "calendar-day";
-        calendar.appendChild(emptyCell);
-      }
-
-      // Day cells
+      const res = await fetch("notes.json");
+      const notes = await res.json();
+      allNotes = notes;
       const today = new Date();
-      for (let d = 1; d <= daysInMonth; d++) {
-        const dayStr = String(d).padStart(2, "0");
-
-        const hasNote = allNotes.some(n => {
-          const { day, monthNum, year } = parseNoteDate(n.date);
-          return day === dayStr && monthNum === currentMonthIndex + 1 && Number(year) === currentYear;
-        });
-
-        const dayCell = document.createElement("div");
-        dayCell.className = "calendar-day" + (hasNote ? " has-notes" : "");
-        dayCell.textContent = d;
-
-        if (today.getMonth() === currentMonthIndex && today.getFullYear() === currentYear && today.getDate() === d) {
-          dayCell.classList.add("today");
-        }
-
-        dayCell.addEventListener("click", () => {
-          const filtered = allNotes.filter(n => {
-            const { day, monthNum, year } = parseNoteDate(n.date);
-            return day === dayStr && monthNum === currentMonthIndex + 1 && Number(year) === currentYear;
-          });
-          renderNotes(filtered);
-        });
-
-        calendar.appendChild(dayCell);
-      }
-
-      // Trailing blanks
-      const totalCells = (firstDay - 1) + daysInMonth;
-      const trailing = (7 - (totalCells % 7)) % 7;
-      for (let i = 0; i < trailing; i++) {
-        const emptyCell = document.createElement("div");
-        emptyCell.className = "calendar-day";
-        calendar.appendChild(emptyCell);
-      }
-
-      calendarBody.appendChild(calendar);
-      card.appendChild(calendarBody);
-      container.appendChild(card);
-    }
-
-    function prevMonth() {
-      currentMonthIndex--;
-      if (currentMonthIndex < 0) {
-        currentMonthIndex = 11;
-        currentYear--;
-      }
+      currentMonthIndex = today.getMonth();
+      currentYear = today.getFullYear();
       renderCalendar();
-    }
-
-    function nextMonth() {
-      currentMonthIndex++;
-      if (currentMonthIndex > 11) {
-        currentMonthIndex = 0;
-        currentYear++;
-      }
-      renderCalendar();
-    }
-
-    function renderNotes(notes) {
-      const container = document.getElementById("notesContainer");
-      const emptyState = document.getElementById("emptyState");
-      const clearBtn = document.getElementById("clearViewBtn");
-      container.innerHTML = "";
-
-      if (!notes.length) {
-        emptyState.classList.remove("d-none");
-        clearBtn.classList.add("d-none");
-        return;
-      }
-      emptyState.classList.add("d-none");
-
-      notes.forEach(n => {
-        const card = document.createElement("div");
-        card.className = "card mb-3 shadow-sm";
-        card.innerHTML = `
-          <div class="card-header bg-success text-white">
-            <strong>${n.date}</strong> – ${n.session} – ${n.title}
-          </div>
-          <div class="card-body">
-            <pre class="bg-light p-3 rounded"><code>${n.body}</code></pre>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-
-      clearBtn.classList.remove("d-none");
-    }
-
-    function clearNotesView() {
-      document.getElementById("notesContainer").innerHTML = "";
-      document.getElementById("emptyState").classList.add("d-none");
-      document.getElementById("clearViewBtn").classList.add("d-none");
-    }
-
-    function downloadSQLFile(session, filename) {
-      const sessionNotes = allNotes.filter(n => n.session === session);
-      const sqlContent = sessionNotes
-        .map(n => `-- ${n.date} : ${n.title}\n${n.body}\n\n`)
-        .join("");
-      const blob = new Blob([sqlContent], { type: "text/sql" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      URL.revokeObjectURL(url);
-      showNotification(`${filename} has been updated and downloaded!`);
-    }
-
-    function showNotification(message) {
-      const notif = document.createElement("div");
-      notif.className = "alert alert-success text-center";
-      notif.textContent = message;
-      document.body.prepend(notif);
-      setTimeout(() => notif.remove(), 5000);
-    }
-
-    function updateLatestNotification() {
-      if (!allNotes.length) {
-        document.getElementById("latestNotification").textContent = "No notes available yet.";
-        return;
-      }
-      const sorted = [...allNotes].sort((a, b) => toJSDate(b.date) - toJSDate(a.date));
-      const latestDate = sorted[0].date;
-      const latestDayNotes = allNotes.filter(n => n.date === latestDate);
-      const latestNote = latestDayNotes.find(n => n.session === "Evening") || latestDayNotes[0];
-
-      document.getElementById("latestNotification").textContent =
-        `🔔 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
-    }
-
-    // Boot
-    loadNotes();
-  
-/* ===================== AuthModule ===================== */
-/* Handles users, login/logout, UI badges. Uses localStorage. */
-const AuthModule = (function () {
-  const USERS_KEY = "lms_users_v1";
-  let currentUser = null;
-
-  function init() {
-    // Initialize default users (only if not present)
-    if (!localStorage.getItem(USERS_KEY)) {
-      const defaultUsers = [
-        { username: "admin", password: "admin123", role: "admin" },
-        { username: "student", password: "student123", role: "student" }
-      ];
-      localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers));
-    }
-    // If already logged in (persist), restore
-    const saved = sessionStorage.getItem("lms_current_user");
-    if (saved) {
-      currentUser = JSON.parse(saved);
-      applyAuthUI();
+      updateLatestNotification();
+    } catch(err){
+      console.error("Error loading notes:", err);
+      document.getElementById("latestNotification").textContent = "Failed to load notes.";
     }
   }
 
-  function getUsers() {
-    try { return JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); }
-    catch (e) { return []; }
-  }
-  function saveUsers(users) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  }
-
-  function showLoginModal() {
-    document.getElementById("loginError").classList.add("d-none");
-    document.getElementById("loginUsername").value = "";
-    document.getElementById("loginPassword").value = "";
-    const modal = document.getElementById("loginModal");
-    modal.style.display = "block";
-  }
-  function hideLoginModal() {
-    const modal = document.getElementById("loginModal");
-    modal.style.display = "none";
-  }
-
-  function login() {
-    const u = document.getElementById("loginUsername").value.trim();
-    const p = document.getElementById("loginPassword").value;
-    const err = document.getElementById("loginError");
-    if (!u || !p) {
-      err.textContent = "Enter username and password.";
-      err.classList.remove("d-none");
-      return;
+  function renderCalendar(){
+    const container = document.getElementById("calendarContainer"); container.innerHTML="";
+    document.getElementById("monthLabel").textContent = `${monthNames[currentMonthIndex]} ${currentYear}`;
+    const daysInMonth = new Date(currentYear, currentMonthIndex+1, 0).getDate();
+    let firstDay = new Date(currentYear, currentMonthIndex,1).getDay(); firstDay = firstDay === 0 ? 7 : firstDay;
+    const card = document.createElement("div"); card.className="card shadow-lg";
+    const calendarBody = document.createElement("div"); calendarBody.className="card-body";
+    const weekdays = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]; const weekdayRow = document.createElement("div"); weekdayRow.className="calendar";
+    weekdays.forEach(w=>{ const wd=document.createElement("div"); wd.className="weekday"; wd.textContent=w; weekdayRow.appendChild(wd); });
+    calendarBody.appendChild(weekdayRow);
+    const calendar = document.createElement("div"); calendar.className="calendar";
+    for(let i=1;i<firstDay;i++){ const emptyCell = document.createElement("div"); emptyCell.className="calendar-day"; calendar.appendChild(emptyCell); }
+    const today = new Date();
+    for(let d=1; d<=daysInMonth; d++){
+      const dayStr=String(d).padStart(2,'0');
+      const hasNote = allNotes.some(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; });
+      const dayCell = document.createElement("div"); dayCell.className = "calendar-day" + (hasNote ? " has-notes": ""); dayCell.textContent = d;
+      if(today.getMonth()===currentMonthIndex && today.getFullYear()===currentYear && today.getDate()===d) dayCell.classList.add("today");
+      dayCell.addEventListener("click", ()=>{ const filtered = allNotes.filter(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; }); renderNotes(filtered); });
+      calendar.appendChild(dayCell);
     }
-    const users = getUsers();
-    const found = users.find(x => x.username === u && x.password === p);
-    if (!found) {
-      err.textContent = "Invalid credentials.";
-      err.classList.remove("d-none");
-      return;
-    }
-    currentUser = { username: found.username, role: found.role };
-    sessionStorage.setItem("lms_current_user", JSON.stringify(currentUser));
-    hideLoginModal();
-    applyAuthUI();
-    // If assignments section is open, refresh assignment view to reflect role
-    refreshAssignmentUI();
+    const totalCells = (firstDay-1) + daysInMonth; const trailing = (7 - (totalCells % 7)) % 7;
+    for(let i=0;i<trailing;i++){ const emptyCell=document.createElement("div"); emptyCell.className="calendar-day"; calendar.appendChild(emptyCell); }
+    calendarBody.appendChild(calendar); card.appendChild(calendarBody); container.appendChild(card);
   }
 
-  function logout() {
-    currentUser = null;
-    sessionStorage.removeItem("lms_current_user");
-    applyAuthUI();
+  function prevMonth(){ currentMonthIndex--; if(currentMonthIndex<0){ currentMonthIndex=11; currentYear--; } renderCalendar(); }
+  function nextMonth(){ currentMonthIndex++; if(currentMonthIndex>11){ currentMonthIndex=0; currentYear++; } renderCalendar(); }
+
+  function renderNotes(notes){
+    const container = document.getElementById("notesContainer"); const emptyState = document.getElementById("emptyState"); const clearBtn = document.getElementById("clearViewBtn");
+    container.innerHTML="";
+    if(!notes.length){ emptyState.classList.remove("d-none"); clearBtn.classList.add("d-none"); return; }
+    emptyState.classList.add("d-none");
+    notes.forEach(n=>{ const card = document.createElement("div"); card.className="card mb-3 shadow-sm"; card.innerHTML = `<div class="card-header bg-success text-white"><strong>${n.date}</strong> – ${n.session} – ${n.title}</div><div class="card-body"><pre class="bg-light p-3 rounded"><code>${n.body}</code></pre></div>`; container.appendChild(card); });
+    clearBtn.classList.remove("d-none");
   }
 
-  function applyAuthUI() {
-    const badge = document.getElementById("loggedInUserBadge");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const roleBadge = document.getElementById("roleBadge");
+  function clearNotesView(){ document.getElementById("notesContainer").innerHTML=""; document.getElementById("emptyState").classList.add("d-none"); document.getElementById("clearViewBtn").classList.add("d-none"); }
 
-    if (currentUser) {
-      badge.textContent = `Signed in: ${currentUser.username}`;
-      badge.classList.remove("d-none");
-      logoutBtn.classList.remove("d-none");
-      roleBadge.textContent = currentUser.role.toUpperCase();
-      roleBadge.classList.remove("d-none");
-      // hide login button
-      document.getElementById("openLoginBtn")?.classList.add("d-none");
-    } else {
-      badge.classList.add("d-none");
-      logoutBtn.classList.add("d-none");
-      roleBadge.classList.add("d-none");
-      document.getElementById("openLoginBtn")?.classList.remove("d-none");
-    }
-  }
-
-  function getCurrentUser() {
-    return currentUser;
-  }
-
-  function registerUser(username, password, role = "student") {
-    const users = getUsers();
-    if (users.find(u => u.username === username)) return false;
-    users.push({ username, password, role });
-    saveUsers(users);
-    return true;
-  }
-
-  // Expose
-  init();
-  return {
-    showLoginModal,
-    hideLoginModal,
-    login,
-    logout,
-    getCurrentUser,
-    registerUser,
-    applyAuthUI
-  };
-})();
-
-/* ===================== AssignmentModule (updated) ===================== */
-/* Requires AuthModule. Replaces earlier AssignmentModule. */
-const AssignmentModule = (function () {
-  const ASSIGNMENTS_FILE = "assignments.json";
-  const ASSIGNMENTS_KEY = "lms_assignments_v1";
-  const RESULTS_KEY = "lms_results_v1"; // stores all students' results
-  let assignments = []; // local cache
-  let results = loadResults();
-
-  function loadResults() {
-    try { return JSON.parse(localStorage.getItem(RESULTS_KEY) || "{}"); }
-    catch (e) { return {}; }
-  }
-  function saveResults() {
-    localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
-  }
-
-  async function loadAssignmentsFromFile() {
-    try {
-      const res = await fetch(ASSIGNMENTS_FILE);
-      const arr = await res.json();
-      // merge into local (file seed only used when local empty)
-      if (!localStorage.getItem(ASSIGNMENTS_KEY)) {
-        localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(arr));
-      }
-      assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
-    } catch (err) {
-      console.error("Failed to load assignments file:", err);
-      assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
-    }
-    renderQuestions();
-    populateSelect();
-  }
-
-  function getAssignments() {
-    assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
-    return assignments;
-  }
-
-  function saveAssignments() {
-    localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(assignments));
-  }
-
-  function renderQuestions() {
-    const container = document.getElementById("assignmentQuestions");
-    container.innerHTML = "";
-    const list = getAssignments();
-    if (!list.length) {
-      container.innerHTML = `<div class="text-muted">No assignments yet.</div>`;
-      return;
-    }
-    list.forEach(a => {
-      const card = document.createElement("div");
-      card.className = "card mb-2";
-      card.innerHTML = `
-        <div class="card-body">
-          <strong>Q${a.id}:</strong> ${a.title || a.question}
-          <div class="text-muted small mt-1">${a.question}</div>
-          <div class="text-muted small mt-1">Assigned to: ${a.assignedTo?.length ? a.assignedTo.join(", ") : "All"}</div>
-        </div>
-      `;
-      container.appendChild(card);
-    });
-  }
-
-  function populateSelect() {
-    const sel = document.getElementById("assignmentSelect");
-    sel.innerHTML = '<option value="">-- Choose question --</option>';
-    getAssignments().forEach(a => {
-      const opt = document.createElement("option");
-      opt.value = a.id;
-      opt.textContent = `Q${a.id}: ${a.title || a.question.slice(0, 60)}`;
-      sel.appendChild(opt);
-    });
-  }
-
-  function openAssignments() {
-    // check login first
-    const user = AuthModule.getCurrentUser();
-    if (!user) {
-      AuthModule.showLoginModal();
-      return;
-    }
-    // hide calendar/notes (preserve original elements)
-    const calendar = document.getElementById("calendarContainer");
-    const notes = document.getElementById("notesContainer");
-    const empty = document.getElementById("emptyState");
-    if (calendar) calendar.classList.add("d-none");
-    if (notes) notes.classList.add("d-none");
-    if (empty) empty.classList.add("d-none");
-
-    // show assignments
-    document.getElementById("assignmentsSection").classList.remove("d-none");
-    document.getElementById("clearViewBtn")?.classList.add("d-none");
-
-    // UI per role
-    refreshAssignmentUI();
-  }
-
-  function closeAssignments() {
-    document.getElementById("assignmentsSection").classList.add("d-none");
-
-    // restore calendar/notes view exactly as before
-    const calendar = document.getElementById("calendarContainer");
-    const notes = document.getElementById("notesContainer");
-    const empty = document.getElementById("emptyState");
-    if (calendar) calendar.classList.remove("d-none");
-    if (notes) notes.classList.remove("d-none");
-    hideScore();
-  }
-
-  function refreshAssignmentUI() {
-    // ensure assignments loaded
-    if (!localStorage.getItem(ASSIGNMENTS_KEY)) {
-      // load from file or fallback
-      loadAssignmentsFromFile();
-    } else {
-      assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
-      renderQuestions();
-      populateSelect();
-    }
-
-    const user = AuthModule.getCurrentUser();
-    const adminPanel = document.getElementById("adminPanel");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const roleBadge = document.getElementById("roleBadge");
-    if (user && user.role === "admin") {
-      adminPanel.classList.remove("d-none");
-      // show admin results
-      renderAdminResults();
-    } else {
-      adminPanel.classList.add("d-none");
-    }
-
-    updateSubmissionHistory();
-    hideScore();
-
-    // update login/logout UI
-    AuthModule.applyAuthUI();
-  }
-
-  function onQuestionChange() {
-    const sel = document.getElementById("assignmentSelect");
-    const val = sel.value;
-    const q = getAssignments().find(a => String(a.id) === String(val));
-    if (!q) {
-      document.getElementById("sqlEditor").placeholder = "Write SQL here...";
-      document.getElementById("assignmentInfo").innerHTML = `<small class="text-muted">Choose a question to begin.</small>`;
-      return;
-    }
-    document.getElementById("assignmentInfo").innerHTML =
-      `<div><strong>Selected:</strong> Q${q.id} — ${q.title || q.question}</div><small class="text-muted">${q.hint ? "Hint: " + q.hint : ""}</small>`;
-    updateSubmissionHistory();
-  }
-
-  function basicScoreForQuery(query, question) {
-    let score = 0;
-    const qlow = query.toLowerCase();
-    if (qlow.includes("select")) score += 40;
-    if (qlow.includes("from")) score += 30;
-    if (qlow.includes("where")) score += 20;
-    if (question && question.tables && Array.isArray(question.tables)) {
-      question.tables.forEach(t => {
-        if (qlow.includes(t.toLowerCase())) score += 10;
-      });
-    } else {
-      if (question && /students|employees|marks|salary|emp\b/i.test(question.question || "")) {
-        const maybeTable = (question.question.match(/students|employees|marks|emp[s]?\b/i) || [])[0];
-        if (maybeTable && qlow.includes(maybeTable.toLowerCase())) score += 10;
-      }
-    }
-    return Math.min(100, score);
-  }
-
-  function submitAssignment() {
-    const user = AuthModule.getCurrentUser();
-    if (!user) {
-      AuthModule.showLoginModal();
-      return;
-    }
-    const sel = document.getElementById("assignmentSelect");
-    const assignmentId = sel.value;
-    const query = document.getElementById("sqlEditor").value.trim();
-    if (!assignmentId) {
-      showScore("Please select a question before submitting.", "danger");
-      return;
-    }
-    if (!query) {
-      showScore("Please write your SQL answer before submitting.", "danger");
-      return;
-    }
-
-    const question = getAssignments().find(a => String(a.id) === String(assignmentId));
-    // check assignment is assigned to this user (if assignedTo exists)
-    if (question.assignedTo && question.assignedTo.length > 0 && !question.assignedTo.includes(user.username) && user.role !== "admin") {
-      showScore("You are not assigned this assignment.", "danger");
-      return;
-    }
-
-    const score = basicScoreForQuery(query, question);
-    const entry = {
-      username: user.username,
-      time: new Date().toISOString(),
-      query,
-      score,
-      assignmentId: assignmentId
-    };
-
-    // store in results under assignmentId
-    results[assignmentId] = results[assignmentId] || [];
-    results[assignmentId].unshift(entry);
-    // keep only last 50 entries per assignment
-    if (results[assignmentId].length > 50) results[assignmentId].length = 50;
-    saveResults();
-
-    showScore(`Submitted! Score: ${score}/100`, "info");
-    updateSubmissionHistory();
-    renderAdminResults(); // update admin view if open
-  }
-
-  function updateSubmissionHistory() {
-    const sel = document.getElementById("assignmentSelect");
-    const assignmentId = sel.value;
-    const histContainer = document.getElementById("submissionHistory");
-    histContainer.innerHTML = "";
-    const user = AuthModule.getCurrentUser();
-    if (!assignmentId) {
-      histContainer.innerHTML = `<div class="text-muted">No question selected.</div>`;
-      return;
-    }
-    const list = (results[assignmentId] || []);
-    const userList = user && user.role === "admin" ? list : list.filter(r => r.username === user.username);
-    if (!userList.length) {
-      histContainer.innerHTML = `<div class="text-muted">No submissions yet for this question${user ? " (for you)" : ""}.</div>`;
-      return;
-    }
-    const ul = document.createElement("div");
-    ul.className = "list-group";
-    userList.forEach(s => {
-      const item = document.createElement("div");
-      item.className = "list-group-item small";
-      const t = new Date(s.time);
-      item.innerHTML = `<div><strong>${s.score}/100</strong> <span class="text-muted">— ${t.toLocaleString()} — <em>${s.username}</em></span></div>
-                        <div class="mt-1 text-truncate" title="${escapeHtml(s.query)}">${escapeHtml(s.query)}</div>`;
-      ul.appendChild(item);
-    });
-    histContainer.appendChild(ul);
-  }
-
-  function clearEditor() {
-    document.getElementById("sqlEditor").value = "";
-    hideScore();
-  }
-
-  function showSample() {
-    const sel = document.getElementById("assignmentSelect");
-    const assignmentId = sel.value;
-    const question = getAssignments().find(a => String(a.id) === String(assignmentId));
-    if (!question) {
-      showScore("Select a question first to see a sample.", "danger");
-      return;
-    }
-    const sample = question.sample || `-- Example:\n-- SELECT * FROM students WHERE marks > 80;`;
-    document.getElementById("sqlEditor").value = sample;
-  }
-
-  function showScore(message, type = "info") {
-    const sc = document.getElementById("scoreCard");
-    sc.className = `alert alert-${type} mt-4`;
-    sc.textContent = message;
-    sc.classList.remove("d-none");
-  }
-
-  function hideScore() {
-    const sc = document.getElementById("scoreCard");
-    sc.classList.add("d-none");
-  }
-
-  function escapeHtml(text) {
-    if (!text) return "";
-    return text.replace(/[&<>"'`=\/]/g, function (s) {
-      return ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
-        "'": '&#39;', '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'
-      })[s];
-    });
-  }
-
-  /* === Admin helpers === */
-  function createAssignmentFromForm(e) {
-    e.preventDefault();
-    const title = document.getElementById("newAssignTitle").value.trim();
-    const questionText = document.getElementById("newAssignQuestion").value.trim();
-    const duration = parseInt(document.getElementById("newAssignDuration").value) || 0;
-    const assignedRaw = document.getElementById("newAssignAssignedTo").value.trim();
-    const assignedTo = assignedRaw ? assignedRaw.split(",").map(s => s.trim()).filter(Boolean) : [];
-    if (!title || !questionText) return false;
-    const id = Date.now(); // simple unique id
-    const obj = {
-      id,
-      title,
-      question: questionText,
-      duration,
-      assignedTo
-    };
-    assignments = getAssignments();
-    assignments.unshift(obj);
-    saveAssignments();
-    renderQuestions();
-    populateSelect();
-    document.getElementById("createAssignmentForm").reset();
-    return false;
-  }
-
-  function deleteAllAssignments() {
-    if (!confirm("Delete ALL assignments from local storage? This cannot be undone.")) return;
-    assignments = [];
-    saveAssignments();
-    renderQuestions();
-    populateSelect();
-  }
-
-  function renderAdminResults() {
-    const adminContainer = document.getElementById("adminResults");
-    adminContainer.innerHTML = "";
-    const allAssignments = getAssignments();
-    if (!allAssignments.length) {
-      adminContainer.innerHTML = `<div class="text-muted">No assignments created yet.</div>`;
-      return;
-    }
-    const wrapper = document.createElement("div");
-    wrapper.className = "accordion";
-    allAssignments.forEach(a => {
-      const rows = (results[a.id] || []);
-      const avg = rows.length ? Math.round(rows.reduce((s,x)=>s+x.score,0)/rows.length) : 0;
-      const card = document.createElement("div");
-      card.className = "mb-2";
-      card.innerHTML = `
-        <div class="fw-bold">Q${a.id}: ${a.title || a.question} — Avg: ${avg}/100 — Submissions: ${rows.length}</div>
-        <div class="small text-muted mb-1">${a.question}</div>
-      `;
-      // list top 5 recent
-      const listDiv = document.createElement("div");
-      listDiv.className = "small";
-      rows.slice(0,10).forEach(r => {
-        const rtime = new Date(r.time);
-        const item = document.createElement("div");
-        item.innerHTML = `<strong>${r.username}</strong> — ${r.score}/100 — ${rtime.toLocaleString()}<div class="text-truncate" title="${escapeHtml(r.query)}">${escapeHtml(r.query)}</div>`;
-        listDiv.appendChild(item);
-      });
-      card.appendChild(listDiv);
-      wrapper.appendChild(card);
-    });
-    adminContainer.appendChild(wrapper);
-  }
-
-  function exportResultsCSV() {
-    // Flatten results into CSV rows
-    const rows = [["assignmentId","username","score","time","query"]];
-    Object.keys(results).forEach(assId => {
-      (results[assId] || []).forEach(r => {
-        rows.push([assId, r.username, r.score, r.time, r.query.replace(/\n/g, " ")]);
-      });
-    });
-    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+  function downloadSQLFile(session, filename){
+    const sessionNotes = allNotes.filter(n=>n.session === session);
+    const sqlContent = sessionNotes.map(n=>`-- ${n.date} : ${n.title}\n${n.body}\n\n`).join("");
+    const blob = new Blob([sqlContent], { type: "text/sql" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "assignment_results.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url); showNotification(`${filename} has been updated and downloaded!`);
+  }
+  function showNotification(message){ const notif = document.createElement("div"); notif.className="alert alert-success text-center"; notif.textContent=message; document.body.prepend(notif); setTimeout(()=>notif.remove(),5000); }
+
+  function updateLatestNotification(){
+    if(!allNotes.length){ document.getElementById("latestNotification").textContent = "No notes available yet."; return; }
+    const sorted = [...allNotes].sort((a,b)=> toJSDate(b.date) - toJSDate(a.date));
+    const latestDate = sorted[0].date; const latestDayNotes = allNotes.filter(n=>n.date===latestDate); const latestNote = latestDayNotes.find(n=>n.session==='Evening') || latestDayNotes[0];
+    document.getElementById("latestNotification").textContent = `🔔 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`;
   }
 
-  /* === init === */
-  (function init() {
-    // load local assignments (seed from file if absent)
-    if (!localStorage.getItem(ASSIGNMENTS_KEY)) {
-      // try to fetch seed file, but don't block
-      loadAssignmentsFromFile();
-    } else {
-      assignments = JSON.parse(localStorage.getItem(ASSIGNMENTS_KEY) || "[]");
-      renderQuestions();
-      populateSelect();
+  /********** UI Tab helper **********/
+  const UI = (function(){
+    function showTab(name){
+      document.getElementById('notesTab').classList.toggle('d-none', name !== 'notes');
+      document.getElementById('assignmentsTab').classList.toggle('d-none', name !== 'assignments');
+      document.getElementById('profileTab').classList.toggle('d-none', name !== 'profile');
+      document.getElementById('notesTabBtn').classList.toggle('active', name === 'notes');
+      document.getElementById('assignTabBtn').classList.toggle('active', name === 'assignments');
+      document.getElementById('profileTabBtn').classList.toggle('active', name === 'profile');
+      if(name === 'assignments') Assignments.refreshUI();
+      if(name === 'profile') Profile.render();
     }
-
-    // Wire up the Assignments open button if present (in case nav uses AssignmentModule.openAssignments)
-    // but keep that unchanged; we still expect caller to call AssignmentModule.openAssignments()
+    return { showTab };
   })();
 
-  // Public API
-  return {
-    openAssignments,
-    closeAssignments,
-    submitAssignment,
-    clearEditor,
-    onQuestionChange,
-    showSample,
-    createAssignmentFromForm,
-    deleteAllAssignments,
-    exportResultsCSV
-  };
-})();
+  /********** Server helper **********/
+  async function serverCall(action, payload){
+    if(!CONFIG.useServer) return { success:false, error:'no-server' };
+    try{
+      const ctl = new AbortController();
+      const timeout = setTimeout(()=>ctl.abort(), CONFIG.serverTimeoutMs);
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action, payload }),
+        signal: ctl.signal
+      });
+      clearTimeout(timeout);
+      const j = await res.json();
+      return j;
+    } catch (e) {
+      console.warn('Server call failed', e);
+      return { success:false, error: e.message || String(e) };
+    }
+  }
 
+  /********** Auth, Profile modules with server/local fallback **********/
+  const Auth = (function(){
+    const USERS_KEY = 'lms_users_v2';
+    let current = null;
+
+    function init(){
+      // seed users if none
+      const local = localStorage.getItem(USERS_KEY);
+      if(!local){
+        const u = [{username:'admin', password:'admin123', role:'admin'}, {username:'student', password:'student123', role:'student'}];
+        localStorage.setItem(USERS_KEY, JSON.stringify(u));
+      }
+      // try load current from session
+      const s = sessionStorage.getItem('lms_user');
+      if(s){ current = JSON.parse(s); applyUI(); }
+    }
+
+    function usersFromServerOrLocal(){
+      // Try server first
+      return serverCall('loadUsers', null).then(r=>{
+        if(r && r.success && Array.isArray(r.data)) { localStorage.setItem(USERS_KEY, JSON.stringify(r.data)); return r.data; }
+        try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch(e){ return []; }
+      }).catch(()=> { try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch(e){ return []; } });
+    }
+
+    function showLoginModal(){ document.getElementById('loginError').classList.add('d-none'); document.getElementById('loginUsername').value=''; document.getElementById('loginPassword').value=''; document.getElementById('loginModal').style.display='block'; }
+    function hideLoginModal(){ document.getElementById('loginModal').style.display='none'; }
+    function showRegisterModal(){ document.getElementById('regError').classList.add('d-none'); document.getElementById('regUsername').value=''; document.getElementById('regPassword').value=''; document.getElementById('regRole').value='student'; document.getElementById('registerModal').style.display='block'; }
+    function hideRegisterModal(){ document.getElementById('registerModal').style.display='none'; }
+
+    async function login(){
+      const u = document.getElementById('loginUsername').value.trim();
+      const p = document.getElementById('loginPassword').value;
+      const err = document.getElementById('loginError');
+      if(!u || !p){ err.textContent = 'Enter username and password.'; err.classList.remove('d-none'); return; }
+      const users = await usersFromServerOrLocal();
+      const found = users.find(x => x.username === u && x.password === p);
+      if(!found){ err.textContent = 'Invalid credentials.'; err.classList.remove('d-none'); return; }
+      current = { username: found.username, role: found.role };
+      sessionStorage.setItem('lms_user', JSON.stringify(current));
+      hideLoginModal();
+      applyUI();
+      Assignments.refreshUI();
+    }
+
+    async function register(){
+      const u = document.getElementById('regUsername').value.trim();
+      const p = document.getElementById('regPassword').value;
+      const role = document.getElementById('regRole').value;
+      const err = document.getElementById('regError');
+      if(!u || !p){ err.textContent='Provide username & password'; err.classList.remove('d-none'); return; }
+      const users = JSON.parse(localStorage.getItem('lms_users_v2') || '[]');
+      if(users.find(x=>x.username===u)){ err.textContent='Username already exists'; err.classList.remove('d-none'); return; }
+      const newUser = { username: u, password: p, role };
+      users.push(newUser);
+      localStorage.setItem('lms_users_v2', JSON.stringify(users));
+      // try push to server (fire and forget)
+      if(CONFIG.useServer) serverCall('saveUsers', users);
+      hideRegisterModal();
+      alert('User created. Please login.');
+    }
+
+    function logout(){ current = null; sessionStorage.removeItem('lms_user'); applyUI(); Assignments.refreshUI(); }
+
+    function applyUI(){
+      const badge = document.getElementById('loggedInUserBadge');
+      const roleBadge = document.getElementById('roleBadge');
+      const loginBtn = document.getElementById('openLoginBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const regBtn = document.getElementById('openRegisterBtn');
+
+      if(current){
+        badge.textContent = `Signed in: ${current.username}`; badge.classList.remove('d-none');
+        roleBadge.textContent = current.role.toUpperCase(); roleBadge.classList.remove('d-none');
+        loginBtn.classList.add('d-none'); logoutBtn.classList.remove('d-none'); regBtn.classList.add('d-none');
+      } else {
+        badge.classList.add('d-none'); roleBadge.classList.add('d-none'); loginBtn.classList.remove('d-none'); regBtn.classList.remove('d-none'); logoutBtn.classList.add('d-none');
+      }
+      Profile.render();
+    }
+
+    function currentUser(){ return current; }
+
+    // change password (local + server)
+    async function changePassword(username, newPass){
+      // update local store
+      const users = JSON.parse(localStorage.getItem('lms_users_v2') || '[]');
+      const u = users.find(x=>x.username===username);
+      if(u){ u.password = newPass; localStorage.setItem('lms_users_v2', JSON.stringify(users)); }
+      if(CONFIG.useServer) await serverCall('saveUsers', users);
+      return true;
+    }
+
+    init();
+    return { showLoginModal, hideLoginModal, login, logout, showRegisterModal, hideRegisterModal, register, applyUI, currentUser, changePassword };
+
+    function init(){}
+  })();
+
+  const Profile = (function(){
+    function render(){
+      const cur = Auth.currentUser();
+      const area = document.getElementById('profileInfo');
+      if(!cur) { area.innerHTML = '<div class="text-muted">Not signed in</div>'; return; }
+      area.innerHTML = `<div><strong>${cur.username}</strong> — <small class="text-muted">${cur.role}</small></div>`;
+    }
+    function openModal(){
+      const cur = Auth.currentUser();
+      if(!cur){ Auth.showLoginModal(); return; }
+      document.getElementById('profileUsername').value = cur.username;
+      document.getElementById('profileNewPassword').value = '';
+      document.getElementById('profileMsg').classList.add('d-none');
+      document.getElementById('profileModal').style.display = 'block';
+    }
+    function hideModal(){ document.getElementById('profileModal').style.display='none'; }
+    async function changePassword(){
+      const username = document.getElementById('profileUsername').value;
+      const newPass = document.getElementById('profileNewPassword').value;
+      if(!newPass) { document.getElementById('profileMsg').textContent='Password cannot be blank'; document.getElementById('profileMsg').classList.remove('d-none'); return; }
+      await Auth.changePassword(username, newPass);
+      document.getElementById('profileMsg').textContent = 'Password updated'; document.getElementById('profileMsg').classList.remove('d-none');
+      setTimeout(()=>hideModal(), 1200);
+    }
+    return { render, openModal, hideModal, changePassword };
+  })();
+
+  /********** sql.js initialization **********/
+  let SQL = null;
+  (async function initSqlJsAndAce(){
+    try {
+      const SQLLib = await initSqlJs({ locateFile: file => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/' + file });
+      SQL = SQLLib;
+    } catch (e){
+      console.error('Failed to init sql.js', e);
+    }
+    // init ace
+    window.editor = ace.edit("aceEditor", { mode: "ace/mode/sql", theme: "ace/theme/sqlserver", fontSize:14 });
+    window.editor.session.setUseWrapMode(true);
+    // Load notes and assignments after editors ready
+    loadNotes();
+    Admin.init(); Assignments.init(); Auth.applyUI();
+  })();
+
+  /********** Storage keys & helpers **********/
+  const ASSIGN_KEY = 'lms_assign_v3';
+  const RESULTS_KEY = 'lms_results_v3';
+
+  /********** Admin helpers (create assignments/testcases and sync with Sheets) **********/
+  const Admin = (function(){
+    function init(){ /* empty now */ }
+    async function createAssignment(e){
+      e.preventDefault();
+      const title = document.getElementById('adminTitle').value.trim();
+      const question = document.getElementById('adminQuestion').value.trim();
+      const schema = document.getElementById('adminSchema').value.trim();
+      const expected = document.getElementById('adminExpected').value.trim();
+      const duration = parseInt(document.getElementById('adminDuration').value) || 0;
+      const assignedToRaw = document.getElementById('adminAssignedTo').value.trim();
+      const assignedTo = assignedToRaw ? assignedToRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+      if(!title || !question){ alert('Title and question required'); return false; }
+      const id = Date.now();
+      const obj = { id, title, question, schema, expectedJSON: expected || '', duration, assignedTo };
+      // save to local list
+      const list = JSON.parse(localStorage.getItem(ASSIGN_KEY) || '[]');
+      list.unshift(obj);
+      localStorage.setItem(ASSIGN_KEY, JSON.stringify(list));
+      // try push to server
+      if(CONFIG.useServer) await serverCall('saveAssignment', obj);
+      resetForm();
+      Assignments.refreshUI();
+      return false;
+    }
+    function resetForm(){ document.getElementById('createForm').reset(); }
+    function deleteAll(){ if(!confirm('Delete all assignments locally?')) return; localStorage.removeItem(ASSIGN_KEY); if(CONFIG.useServer) serverCall('deleteAllAssignments', null); Assignments.refreshUI(); }
+    function exportResults(){
+      Assignments.exportResults();
+    }
+    async function syncFromServer(){
+      if(!CONFIG.useServer){ alert('No server configured'); return; }
+      const r = await serverCall('loadAssignments', null);
+      if(r && r.success){ localStorage.setItem(ASSIGN_KEY, JSON.stringify(r.data)); Assignments.refreshUI(); alert('Synced assignments from server'); }
+      else alert('Sync failed: ' + (r && r.error ? r.error : 'unknown'));
+    }
+    return { init, createAssignment, deleteAll, exportResults, syncFromServer };
+  })();
+
+  /********** Assignments core module (sql.js grading, Ace editor, tab-switch protection) **********/
+  const Assignments = (function(){
+    let assignments = [];
+    let results = {};
+    let current = null; // current assignment object
+    let timer = null; let timeLeft = 0; let isRunning = false;
+    let visibilitySwitchCount = 0; let warnedOnSwitch = false;
+
+    function init(){
+      loadAll();
+      // track visibility change for tab-switch protection
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    function handleVisibilityChange(){
+      if(!isRunning) return;
+      if(document.hidden){
+        visibilitySwitchCount++;
+        if(visibilitySwitchCount === 1){
+          warnedOnSwitch = true;
+          alert('You switched tabs. Warning: switching tabs during a timed assignment is not allowed. Next switch will auto-submit.');
+        } else if(visibilitySwitchCount >= 2){
+          // auto-submit
+          alert('Second tab-switch detected — assignment will be auto-submitted now.');
+          autoSubmit();
+        }
+      }
+    }
+
+    function loadAll(){
+      assignments = JSON.parse(localStorage.getItem(ASSIGN_KEY) || '[]');
+      results = JSON.parse(localStorage.getItem(RESULTS_KEY) || '{}');
+      renderList();
+      populateSelect();
+      renderAdminArea();
+    }
+
+    function saveAll(){ localStorage.setItem(ASSIGN_KEY, JSON.stringify(assignments)); localStorage.setItem(RESULTS_KEY, JSON.stringify(results)); }
+
+    async function refreshUI(){
+      // try server fallback: attempt to load from server
+      if(CONFIG.useServer){
+        const r = await serverCall('loadAssignments', null);
+        if(r && r.success && Array.isArray(r.data)){ assignments = r.data; localStorage.setItem(ASSIGN_KEY, JSON.stringify(assignments)); }
+        const rr = await serverCall('loadResults', null);
+        if(rr && rr.success && rr.data){ results = rr.data; localStorage.setItem(RESULTS_KEY, JSON.stringify(results)); }
+      }
+      loadAll();
+      renderAdminArea();
+    }
+
+    function renderList(){
+      const div = document.getElementById('assignmentList'); div.innerHTML='';
+      const user = Auth.currentUser();
+      const list = assignments.filter(a=> {
+        if(!a.assignedTo || !a.assignedTo.length) return true;
+        if(!user) return false;
+        if(user.role === 'admin') return true;
+        return a.assignedTo.includes(user.username);
+      });
+      if(!list.length){ div.innerHTML = '<div class="text-muted">No assignments available.</div>'; return; }
+      list.forEach(a=>{
+        const el = document.createElement('div'); el.className='card mb-2';
+        el.innerHTML = `<div class="card-body"><strong>${a.title}</strong><div class="small text-muted">${a.question}</div><div class="mt-2 text-end"><button class="btn btn-sm btn-outline-primary" onclick="Assignments.open(${a.id})">Open</button></div></div>`;
+        div.appendChild(el);
+      });
+    }
+
+    function populateSelect(){
+      const sel = document.getElementById('assignmentSelect'); sel.innerHTML = '<option value="">-- Choose assignment --</option>';
+      const user = Auth.currentUser();
+      const list = assignments.filter(a=> {
+        if(!a.assignedTo || !a.assignedTo.length) return true;
+        if(!user) return false;
+        if(user.role === 'admin') return true;
+        return a.assignedTo.includes(user.username);
+      });
+      list.forEach(a=>{
+        const opt = document.createElement('option'); opt.value = a.id; opt.textContent = `Q${a.id}: ${a.title}`; sel.appendChild(opt);
+      });
+    }
+
+    function open(id){ document.getElementById('assignmentSelect').value = id; onSelect(); UI.showTab('assignments'); }
+
+    function onSelect(){
+      const sel = document.getElementById('assignmentSelect'); const id = sel.value;
+      if(!id){ document.getElementById('assignmentCard').classList.add('d-none'); return; }
+      const a = assignments.find(x=>String(x.id)===String(id));
+      if(!a) return;
+      current = a;
+      showAssignment(a);
+    }
+
+    function showAssignment(a){
+      // permission
+      const user = Auth.currentUser();
+      if(a.assignedTo && a.assignedTo.length && (!user || (user.role !== 'admin' && !a.assignedTo.includes(user.username)))){
+        alert('You are not assigned this assignment'); return;
+      }
+      document.getElementById('assignmentCard').classList.remove('d-none');
+      document.getElementById('assignmentHeader').innerHTML = `<strong>Q${a.id}: ${a.title}</strong><div class="small text-muted mt-1">${a.question}</div>`;
+      window.editor.setValue(a.schema ? '-- Schema loaded in background for tests\n\n' : '', -1);
+      // Put sample query into editor area (we'll show sample via button)
+      editor.setValue(a.sample || '', -1);
+      document.getElementById('assignmentResult').innerHTML = '';
+      // timer
+      if(a.duration && Number(a.duration) > 0){ document.getElementById('timerArea').classList.remove('d-none'); timeLeft = Number(a.duration); updateTimerUI(); document.getElementById('startBtn').classList.remove('d-none'); } else { document.getElementById('timerArea').classList.add('d-none'); }
+      updateSubmissionHistory();
+    }
+
+    function updateTimerUI(){
+      const mm = Math.floor(timeLeft/60).toString().padStart(2,'0'); const ss = (timeLeft%60).toString().padStart(2,'0');
+      document.getElementById('timeLeft').textContent = `${mm}:${ss}`; const a = current || {}; const pct = a.duration ? (timeLeft / a.duration) * 100 : 0; document.getElementById('timerBar').style.width = (pct)+'%';
+    }
+
+    function start(){
+      if(!current){ alert('Choose an assignment first'); return; }
+      if(isRunning){ alert('Already running'); return; }
+      if(current.duration && Number(current.duration) > 0){
+        isRunning = true; visibilitySwitchCount = 0; warnedOnSwitch = false;
+        document.getElementById('startBtn').textContent = 'Running...';
+        timer = setInterval(()=>{ timeLeft--; if(timeLeft<=0){ autoSubmit(); } else updateTimerUI(); }, 1000);
+      } else {
+        alert('This assignment has unlimited time — just write and submit.');
+      }
+    }
+
+    function autoSubmit(){
+      clearInterval(timer); timer=null; isRunning=false; document.getElementById('startBtn').textContent='Start';
+      submit(true);
+    }
+
+    async function submit(auto=false){
+      const user = Auth.currentUser(); if(!user){ Auth.showLoginModal(); return; }
+      if(!current){ alert('Select assignment first'); return; }
+      const sql = editor.getValue().trim();
+      if(!sql){ alert('Write SQL before submitting'); return; }
+      // Run test using sql.js: create a DB, run schema (if any), run student's query, compare with expected
+      let score = 0; let pass = false; let details = '';
+      if(SQL){
+        try {
+          const db = new SQL.Database();
+          if(current.schema && current.schema.trim()){
+            db.run(current.schema);
+          }
+          // run student's query
+          const res = db.exec(sql);
+          // normalize rowset as array of objects (use first result only)
+          const rows = [];
+          if(res && res.length){
+            const cols = res[0].columns; const values = res[0].values;
+            values.forEach(valRow=>{
+              const obj = {}; cols.forEach((c,i)=> obj[c]=valRow[i]); rows.push(obj);
+            });
+          }
+          // expected
+          let expectedRows = [];
+          if(current.expectedJSON && current.expectedJSON.trim()){
+            try { expectedRows = JSON.parse(current.expectedJSON); } catch(e){ expectedRows = []; }
+          }
+          // simple comparison: stringify arrays of rows (order-sensitive)
+          const got = JSON.stringify(rows); const exp = JSON.stringify(expectedRows);
+          pass = (exp === got);
+          details = `Expected: ${exp}\nGot: ${got}`;
+          score = pass ? 100 : 0;
+        } catch (e){
+          details = 'Error running SQL: ' + e.message;
+          score = 0;
+        }
+      } else {
+        // fallback heuristic
+        if(sql.toLowerCase().includes('select')) score += 50;
+        if(sql.toLowerCase().includes('from')) score += 30;
+        if(sql.toLowerCase().includes('where')) score += 20;
+        details = 'sql.js not available; heuristic grading applied.';
+      }
+
+      // record result
+      results[current.id] = results[current.id] || [];
+      const entry = { username: user.username, time: new Date().toISOString(), query: sql, score, pass };
+      results[current.id].unshift(entry);
+      if(results[current.id].length > 500) results[current.id].length = 500;
+      saveAll();
+      // push to server if configured
+      if(CONFIG.useServer) { serverCall('saveResult', { assignmentId: current.id, entry }).catch(()=>{}); }
+      // show result
+      document.getElementById('assignmentResult').innerHTML = `<div class="alert alert-${pass? 'success':'warning'}">Score: ${score}/100<br/><pre style="white-space:pre-wrap">${escapeHtml(details)}</pre></div>`;
+      updateSubmissionHistory();
+    }
+
+    function clearEditor(){ editor.setValue('', -1); document.getElementById('assignmentResult').innerHTML=''; }
+
+    function insertSample(){ if(current && current.sample) editor.setValue(current.sample, -1); else alert('No sample available'); }
+
+    function updateSubmissionHistory(){
+      const sel = document.getElementById('assignmentSelect'); const id = sel.value || (current ? current.id : null);
+      const hist = document.getElementById('submissionHistory'); hist.innerHTML = '';
+      if(!id){ hist.innerHTML = '<div class="text-muted">No assignment selected.</div>'; return; }
+      const list = results[id] || [];
+      const user = Auth.currentUser();
+      const visible = user && user.role === 'admin' ? list : list.filter(r=> r.username === (user?user.username:'')); 
+      if(!visible.length){ hist.innerHTML = '<div class="text-muted">No submissions yet.</div>'; return; }
+      const wrap = document.createElement('div'); wrap.className = 'list-group';
+      visible.forEach(r=>{
+        const el = document.createElement('div'); el.className='list-group-item small';
+        const t = new Date(r.time);
+        el.innerHTML = `<div><strong>${r.score}/100</strong> <span class="text-muted">— ${t.toLocaleString()} — <em>${r.username}</em></span></div><div class="mt-1 text-truncate-multi" title="${escapeHtml(r.query)}">${escapeHtml(r.query)}</div>`;
+        wrap.appendChild(el);
+      });
+      hist.appendChild(wrap);
+    }
+
+    function renderAdminArea(){
+      const panel = document.getElementById('adminPanel');
+      const user = Auth.currentUser();
+      if(user && user.role === 'admin'){ panel.classList.remove('d-none'); } else panel.classList.add('d-none');
+      // render admin results summary
+      const container = document.getElementById('adminResults'); container.innerHTML='';
+      assignments.forEach(a=>{
+        const rows = results[a.id] || []; const avg = rows.length ? Math.round(rows.reduce((s,x)=>s+x.score,0)/rows.length) : 0;
+        const div = document.createElement('div'); div.className='mb-2';
+        div.innerHTML = `<div class="fw-bold">Q${a.id}: ${a.title} — Avg: ${avg}/100 — Submissions: ${rows.length}</div><div class="small text-muted">${a.question}</div>`;
+        rows.slice(0,6).forEach(r=>{
+          const t = new Date(r.time);
+          const it = document.createElement('div'); it.className='small'; it.innerHTML = `<strong>${r.username}</strong> — ${r.score}/100 — ${t.toLocaleString()} <div class="text-truncate-multi" title="${escapeHtml(r.query)}">${escapeHtml(r.query)}</div>`; div.appendChild(it);
+        });
+        container.appendChild(div);
+      });
+    }
+
+    function exportResults(){
+      const rows = [['assignmentId','username','score','time','query']];
+      Object.keys(results).forEach(aid => { (results[aid]||[]).forEach(r => rows.push([aid, r.username, r.score, r.time, r.query.replace(/\n/g,' ')])); });
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type:'text/csv' }); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='assignment_results.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    // open assignment by id (external)
+    function openById(id){
+      document.getElementById('assignmentSelect').value = id; onSelect();
+    }
+
+    return { init, refreshUI, renderList, populateSelect, open: openById, onSelect, start: start, submit, clearEditor, insertSample, exportResults, refreshUI: refreshUI };
+  })();
+
+  /********** Utilities **********/
+  function escapeHtml(t){ if(!t) return ''; return t.replace(/[&<>"'`=\/]/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;'})[s]); }
+
+  /********** Initialization & boot **********/
+  window.addEventListener('load', ()=>{ /* editor/sql init called earlier */ });
+
+  // initial notes load (sql.js & ace init triggers loadNotes)
+  // Assignments init will run after sql.js ready in the earlier code.
+
+  // Expose a few globals for buttons
+  const AssignmentsAPI = { submit: ()=>Assignments.submit(), start: ()=>Assignments.start() };
 
 </script>
- 
 </body>
 </html>
