@@ -266,60 +266,55 @@ function start() {
   }
 
 async function upload() {
-  try {
-    const file = fileInput.files[0];
-    if (!file) {
-      alert('Select a file');
-      return;
-    }
+  const file = fileInput.files[0];
 
-    if (!studentData) {
-      alert('Please enter your details again');
-      return;
-    }
+  if (!file) {
+    alert('Select a file');
+    return;
+  }
 
-    // Show uploading message
-    result.innerHTML = `<div class="alert alert-info text-center">Uploading... ⏳</div>`;
+  if (!studentData) {
+    alert('Please enter your details again');
+    return;
+  }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const payload = {
-        action: 'upload',
-        name: studentData.name,
-        mobile: studentData.mobile,
-        fileName: file.name,
-        mimeType: file.type,
-        file: reader.result.split(',')[1]
-      };
+  // Show uploading message
+  result.innerHTML = `<div class="alert alert-info text-center">Uploading... ⏳</div>`;
 
-      try {
-        const res = await fetch(API, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
+  const reader = new FileReader();
 
-        const out = await res.json();
-
-        // Show result below upload
-        if (out.status === 'success') {
-          result.innerHTML = `<div class="alert alert-success text-center">✅ Assignment uploaded successfully!</div>`;
-          // Optionally hide upload card
-          uploadCard.classList.add('d-none');
-        } else {
-          result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed: ${out.message || 'Unknown error'}</div>`;
-        }
-      } catch (err) {
-        console.error(err);
-        result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed. Please try again.</div>`;
-      }
+  reader.onload = async () => {
+    const payload = {
+      action: 'upload',
+      name: studentData.name,
+      mobile: studentData.mobile,
+      fileName: file.name,
+      mimeType: file.type,
+      file: reader.result.split(',')[1]
     };
 
-    reader.readAsDataURL(file);
+    try {
+      const res = await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
 
-  } catch (err) {
-    console.error(err);
-    result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload error. Check console.</div>`;
-  }
+      const out = await res.json();
+
+      if (out.status === 'success') {
+        result.innerHTML = `<div class="alert alert-success text-center">✅ Assignment uploaded successfully!</div>`;
+        uploadCard.classList.add('d-none'); // optionally hide upload card
+      } else {
+        result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed: ${out.message || 'Unknown error'}</div>`;
+      }
+
+    } catch (err) {
+      console.error(err);
+      result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed. Check console for details.</div>`;
+    }
+  };
+
+  reader.readAsDataURL(file);
 }
 
 
