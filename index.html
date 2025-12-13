@@ -28,23 +28,22 @@
     .modal { position: fixed; top:0; left:0; width:100%; height:100%; z-index:1050; display:none; background: rgba(0,0,0,0.4); }
     .modal .modal-dialog { margin: 6rem auto; }
     .text-truncate-multi { overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; }
-    /* NEW flashing badge */
-.new-badge {
+   
+
+   .new-dot {
   display: inline-block;
-  margin-left: 8px;
-  padding: 3px 8px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #fff;
-  background: #dc3545;
-  border-radius: 12px;
-  animation: flash 1s infinite;
+  width: 10px;
+  height: 10px;
+  background: red;
+  border-radius: 50%;
+  margin-left: 6px;
+  animation: pulse 1s infinite;
 }
 
-@keyframes flash {
-  0%   { opacity: 1; }
-  50%  { opacity: 0.2; }
-  100% { opacity: 1; }
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.3; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
   </style>
@@ -54,7 +53,12 @@
   <nav class="navbar navbar-dark bg-dark">
     <div class="container d-flex align-items-center">
       <span class="navbar-brand">Practice Session Notes</span>
-      <button id="openAssignmentsBtn" class="btn btn-warning ms-3" onclick="document.getElementById('assignmentSection').scrollIntoView({behavior:'smooth'})">Assignments</button>
+
+<button id="openAssignmentsBtn" class="btn btn-warning ms-3"
+  onclick="document.getElementById('assignmentSection').scrollIntoView({behavior:'smooth'})">
+  Assignments <span id="assignmentNewDot" class="new-dot"></span>
+</button>
+
       <div class="ms-auto d-flex gap-2 align-items-center">
 
 
