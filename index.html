@@ -300,9 +300,11 @@ async function upload() {
 
         const out = await res.json();
 
+        // Show result below upload
         if (out.status === 'success') {
           result.innerHTML = `<div class="alert alert-success text-center">✅ Assignment uploaded successfully!</div>`;
-          uploadCard.classList.add('d-none'); // hide upload card if needed
+          // Optionally hide upload card
+          uploadCard.classList.add('d-none');
         } else {
           result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed: ${out.message || 'Unknown error'}</div>`;
         }
@@ -319,6 +321,7 @@ async function upload() {
     result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload error. Check console.</div>`;
   }
 }
+
 
 
 // Helper function to show notifications
