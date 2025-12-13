@@ -265,6 +265,7 @@ function start() {
     uploadCard.classList.remove('d-none');
   }
 
+
 async function upload() {
   const file = fileInput.files[0];
 
@@ -278,7 +279,7 @@ async function upload() {
     return;
   }
 
-  // Show uploading message
+  // Show uploading message inside uploadCard
   result.innerHTML = `<div class="alert alert-info text-center">Uploading... ⏳</div>`;
 
   const reader = new FileReader();
@@ -302,8 +303,8 @@ async function upload() {
       const out = await res.json();
 
       if (out.status === 'success') {
-        result.innerHTML = `<div class="alert alert-success text-center">✅ Assignment uploaded successfully!</div>`;
-        uploadCard.classList.add('d-none'); // optionally hide upload card
+        result.innerHTML = `<div class="alert alert-success text-center">✅ Assignment Submitted Successfully!</div>`;
+        uploadCard.classList.add('d-none'); // optionally hide upload section
       } else {
         result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed: ${out.message || 'Unknown error'}</div>`;
       }
