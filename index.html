@@ -240,25 +240,24 @@
   <script>
 const Assignment = (() => {
   const API = 'https://script.google.com/macros/s/AKfycby6hzIpKsnB27-QSYTVI_24KH3B-eKN9OAl9xb5Ln9LThcerGuy2TLKcWFbmvgpi4ZpqA/exec';
-  const KEY = 'assignment_done_v1';
+ 
 
-  function start() {
-    if (localStorage.getItem(KEY)) {
-      alert('You have already downloaded the assignment.');
-      return;
-    }
+  let studentData = null;
 
-    const name = studentName.value.trim();
-    const mobile = studentMobile.value.trim();
-    if (!name || !mobile) {
-      alert('Enter name and mobile number');
-      return;
-    }
+function start() {
+  const name = studentName.value.trim();
+  const mobile = studentMobile.value.trim();
 
-    localStorage.setItem(KEY, JSON.stringify({ name, mobile }));
-    studentCard.classList.add('d-none');
-    downloadCard.classList.remove('d-none');
+  if (!name || !mobile) {
+    alert('Enter name and mobile number');
+    return;
   }
+
+  studentData = { name, mobile };
+
+  studentCard.classList.add('d-none');
+  downloadCard.classList.remove('d-none');
+}
 
   function logDownload() {
     downloadCard.classList.add('d-none');
@@ -273,11 +272,58 @@ const Assignment = (() => {
       return;
     }
 
-    const data = JSON.parse(localStorage.getItem(KEY));
-    if (!data) {
-      alert('Session expired. Reload page.');
+   async function upload() {
+  try {
+    const file = fileInput.files[0];
+    if (!file) {
+      alert('Select a file');
       return;
     }
+
+    if (!studentData) {
+      alert('Please enter your details again');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const payload = {
+        action: 'upload',
+        name: studentData.name,
+        mobile: studentData.mobile,
+        fileName: file.name,
+        mimeType: file.type,
+        file: reader.result.split(',')[1]
+      };
+
+      const res = await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      const out = await res.json();
+
+      if (out.status === 'success') {
+        result.innerHTML = `
+          <div class="alert alert-success">
+            Assignment uploaded successfully!
+          </div>`;
+        uploadCard.classList.add('d-none');
+      } else {
+        result.innerHTML = `
+          <div class="alert alert-danger">
+            ${out.message}
+          </div>`;
+      }
+    };
+
+    reader.readAsDataURL(file);
+  } catch (err) {
+    console.error(err);
+    alert('Upload error. Check console.');
+  }
+}
+
 
     const reader = new FileReader();
     reader.onload = async () => {
