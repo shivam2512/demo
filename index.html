@@ -36,7 +36,9 @@
       <span class="navbar-brand">Practice Session Notes</span>
       <button id="openAssignmentsBtn" class="btn btn-warning ms-3" onclick="document.getElementById('assignmentSection').scrollIntoView({behavior:'smooth'})">Assignments</button>
       <div class="ms-auto d-flex gap-2 align-items-center">
-        <button id="adminViewBtn" class="btn btn-outline-light" onclick="AssignmentModule.showAdminView()">Admin View</button>
+<button id="adminViewBtn" class="btn btn-outline-light"
+  onclick="Assignment.admin()">Admin View</button>
+
       </div>
     </div>
   </nav>
@@ -102,20 +104,7 @@
 
   </main>
 
-  <div id="adminModal" class="modal" role="dialog">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header d-flex justify-content-between align-items-center">
-          <h5 class="modal-title">Submissions (Admin)</h5>
-          <div>
-            <button class="btn btn-sm btn-outline-secondary me-2" onclick="AssignmentModule.exportCSV()">Export CSV</button>
-            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('adminModal').style.display='none'">Close</button>
-          </div>
-        </div>
-        <div class="modal-body" id="adminModalBody"></div>
-      </div>
-    </div>
-  </div>
+ 
 
   <!-- CodeMirror 6 via dynamic import (works in modern browsers) -->
   <script>
@@ -244,12 +233,7 @@
 
    
 
-    // init on load
-    window.addEventListener('load', function(){
-      AssignmentModule.init();
-      document.getElementById('adminModal').addEventListener('click', function(e){ if(e.target===this) this.style.display='none'; });
-      window.AssignmentModule = AssignmentModule;
-    });
+
   </script>
 
 
@@ -281,17 +265,22 @@ const Assignment = (() => {
     uploadCard.classList.remove('d-none');
   }
 
-  function upload() {
+  async function upload() {
+  try {
     const file = fileInput.files[0];
     if (!file) {
       alert('Select a file');
       return;
     }
 
+    const data = JSON.parse(localStorage.getItem(KEY));
+    if (!data) {
+      alert('Session expired. Reload page.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async () => {
-      const data = JSON.parse(localStorage.getItem(KEY));
-
       const payload = {
         action: 'upload',
         name: data.name,
@@ -307,16 +296,28 @@ const Assignment = (() => {
       });
 
       const out = await res.json();
+      console.log(out);
+
       if (out.status === 'success') {
         result.innerHTML =
           `<div class="alert alert-success">
             Assignment uploaded successfully!
           </div>`;
+      } else {
+        result.innerHTML =
+          `<div class="alert alert-danger">
+            Upload failed
+          </div>`;
       }
     };
 
     reader.readAsDataURL(file);
+  } catch (err) {
+    console.error(err);
+    alert('Upload error. Check console.');
   }
+}
+
 
   async function admin() {
     const res = await fetch(API, {
