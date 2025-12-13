@@ -300,24 +300,20 @@ function start() {
         const out = await res.json();
 
         if (out.status === 'success') {
-          result.innerHTML = `
-            <div class="alert alert-success">
-              ✅ Assignment uploaded successfully!
-            </div>`;
+          result.innerHTML = `<div class="alert alert-success">✅ Assignment uploaded successfully!</div>`;
           uploadCard.classList.add('d-none');
         } else {
-          result.innerHTML = `
-            <div class="alert alert-danger">
-              ❌ ${out.message || 'Upload failed'}
-            </div>`;
+          result.innerHTML = `<div class="alert alert-danger">❌ Upload failed: ${out.message || 'Unknown error'}</div>`;
         }
       } catch (err) {
         console.error(err);
-        result.innerHTML = `
-          <div class="alert alert-danger">
-            ❌ Upload failed. Please try again.
-          </div>`;
+        result.innerHTML = `<div class="alert alert-danger">❌ Upload failed. Please try again.</div>`;
       }
+
+      // Auto-remove message after 5 seconds
+      setTimeout(() => {
+        result.innerHTML = '';
+      }, 5000);
     };
 
     reader.readAsDataURL(file);
@@ -327,6 +323,7 @@ function start() {
     alert('Upload error. Check console.');
   }
 }
+
 
 
 
