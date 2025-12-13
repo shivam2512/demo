@@ -37,8 +37,7 @@
       <span class="navbar-brand">Practice Session Notes</span>
       <button id="openAssignmentsBtn" class="btn btn-warning ms-3" onclick="document.getElementById('assignmentSection').scrollIntoView({behavior:'smooth'})">Assignments</button>
       <div class="ms-auto d-flex gap-2 align-items-center">
-<button id="adminViewBtn" class="btn btn-outline-light"
-  onclick="Assignment.admin()">Admin View</button>
+
 
       </div>
     </div>
@@ -98,7 +97,7 @@
   </div>
 
   <!-- Admin -->
-  <button class="btn btn-dark mt-4" onclick="Assignment.admin()">Admin Dashboard</button>
+  
 </section>
 
 
@@ -240,7 +239,7 @@
 
   <script>
 const Assignment = (() => {
-  const API = 'https://script.google.com/macros/s/AKfycbyvQ_bKMeuO4H4C6J4pP4Fm9XLmDhZDhkf03luoLUxOKNL2ZA6dBIux8Ga0ookHewnUpQ/exec';
+  const API = 'https://script.google.com/macros/s/AKfycbwLrKJ8fmyFsHdN6nNIdQjS7S92wrakiExc_hO4YcRuTIKbfWYY5FEyNHyyeZk30AEg/exec';
  
 
   let studentData = null;
@@ -341,44 +340,72 @@ function showUploadNotification(message, type='info') {
   setTimeout(() => { notifDiv.innerHTML = ''; }, 5000);
 }
 
-  async function admin() {
-    const res = await fetch(API, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'fetchAdmin' })
-    });
+  function admin(rows) {
+  let html = `<table class="table table-bordered">
+    <tr>
+      <th>Time</th>
+      <th>Name</th>
+      <th>Mobile</th>
+      <th>File</th>
+    </tr>`;
 
-    const data = await res.json();
-    if (data.status !== 'success') return;
+  rows.forEach(r => {
+    html += `<tr>
+      <td>${r[0]}</td>
+      <td>${r[1]}</td>
+      <td>${r[2]}</td>
+      <td><a href="${r[4]}" target="_blank">Open</a></td>
+    </tr>`;
+  });
 
-    let html = `<table class="table table-bordered">
-      <tr><th>Name</th><th>Mobile</th><th>File</th></tr>`;
+  html += `</table>`;
 
-    data.rows.forEach(r => {
-      html += `<tr>
-        <td>${r[1]}</td>
-        <td>${r[2]}</td>
-        <td><a href="${r[4]}" target="_blank">Download</a></td>
-      </tr>`;
-    });
-
-    html += `</table>`;
-
-    document.body.insertAdjacentHTML('beforeend',
-      `<div class="modal show d-block">
-        <div class="modal-dialog modal-lg">
-          <div class="modal-content p-3">
-            <h5>Admin Dashboard</h5>
-            ${html}
-            <button class="btn btn-secondary mt-3"
-              onclick="this.closest('.modal').remove()">Close</button>
-          </div>
+  document.body.insertAdjacentHTML('beforeend',
+    `<div class="modal show d-block">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content p-3">
+          <h5>🔒 Admin Dashboard</h5>
+          ${html}
+          <button class="btn btn-secondary mt-3"
+            onclick="this.closest('.modal').remove()">Close</button>
         </div>
-      </div>`);
-  }
+      </div>
+    </div>`
+  );
+}
+
 
   return { start, logDownload, upload, admin };
 })();
 </script>
+<script>
+document.addEventListener('keydown', async (e) => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+    const pwd = prompt('Enter admin password');
+    if (!pwd) return;
+
+    const res = await fetch(API, 
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'fetchAdmin',
+          password: pwd
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.status !== 'success') {
+      alert('❌ Unauthorized');
+      return;
+    }
+
+    Assignment.admin(data.rows);
+  }
+});
+</script>
+
 
 </body>
 </html>
