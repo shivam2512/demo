@@ -380,7 +380,8 @@ function showUploadNotification(message, type='info') {
 </script>
 <script>
 document.addEventListener('keydown', async (e) => {
-  if (e.ctrlKey && e.shiftKey && e.key === 'f') {
+  if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'a') 
+ {
     const pwd = prompt('Enter admin password');
     if (!pwd) return;
 
