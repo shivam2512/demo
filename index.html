@@ -378,31 +378,68 @@ function showUploadNotification(message, type='info') {
   return { start, logDownload, upload, admin };
 })();
 </script>
+
 <script>
-document.addEventListener('keydown', async (e) => {
-  if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'a') 
- {
+console.log('Admin shortcut script loaded');
+
+document.addEventListener('keydown', async function (e) {
+  console.log('Key pressed:', e.key);
+
+  if (e.shiftKey && e.altKey && e.key.toLowerCase() === 'a') {
+    e.preventDefault();
+    console.log('Admin shortcut triggered');
+
     const pwd = prompt('Enter admin password');
     if (!pwd) return;
 
-    const res = await fetch(API, 
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'fetchAdmin',
-          password: pwd
-        })
+    try {
+      const res = await fetch(API,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'fetchAdmin',
+            password: pwd
+          })
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.status !== 'success') {
+        alert('❌ Invalid password');
+        return;
       }
-    );
 
-    const data = await res.json();
+      let html = `<table class="table table-bordered">
+        <tr><th>Name</th><th>Mobile</th><th>File</th></tr>`;
 
-    if (data.status !== 'success') {
-      alert('❌ Unauthorized');
-      return;
+      data.rows.forEach(r => {
+        html += `<tr>
+          <td>${r[1]}</td>
+          <td>${r[2]}</td>
+          <td><a href="${r[4]}" target="_blank">Download</a></td>
+        </tr>`;
+      });
+
+      html += `</table>`;
+
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show d-block">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content p-3">
+              <h5>Admin Dashboard</h5>
+              ${html}
+              <button class="btn btn-secondary mt-3"
+                onclick="this.closest('.modal').remove()">Close</button>
+            </div>
+          </div>
+        </div>
+      `);
+
+    } catch (err) {
+      console.error(err);
+      alert('Admin fetch failed');
     }
-
-    Assignment.admin(data.rows);
   }
 });
 </script>
