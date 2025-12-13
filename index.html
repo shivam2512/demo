@@ -272,14 +272,6 @@ function start() {
       return;
     }
 
-   async function upload() {
-  try {
-    const file = fileInput.files[0];
-    if (!file) {
-      alert('Select a file');
-      return;
-    }
-
     if (!studentData) {
       alert('Please enter your details again');
       return;
@@ -289,8 +281,8 @@ function start() {
     reader.onload = async () => {
       const payload = {
         action: 'upload',
-        name: studentData.name,
-        mobile: studentData.mobile,
+        name: studentData.name,   // ✅ use studentData
+        mobile: studentData.mobile, // ✅ use studentData
         fileName: file.name,
         mimeType: file.type,
         file: reader.result.split(',')[1]
@@ -312,7 +304,7 @@ function start() {
       } else {
         result.innerHTML = `
           <div class="alert alert-danger">
-            ${out.message}
+            ${out.message || 'Upload failed'}
           </div>`;
       }
     };
@@ -324,45 +316,6 @@ function start() {
   }
 }
 
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const payload = {
-        action: 'upload',
-        name: data.name,
-        mobile: data.mobile,
-        fileName: file.name,
-        mimeType: file.type,
-        file: reader.result.split(',')[1]
-      };
-
-      const res = await fetch(API, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-
-      const out = await res.json();
-      console.log(out);
-
-      if (out.status === 'success') {
-        result.innerHTML =
-          `<div class="alert alert-success">
-            Assignment uploaded successfully!
-          </div>`;
-      } else {
-        result.innerHTML =
-          `<div class="alert alert-danger">
-            Upload failed
-          </div>`;
-      }
-    };
-
-    reader.readAsDataURL(file);
-  } catch (err) {
-    console.error(err);
-    alert('Upload error. Check console.');
-  }
-}
 
 
   async function admin() {
