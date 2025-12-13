@@ -31,7 +31,7 @@
   </style>
 </head>
 <body>
-<div id="uploadNotification" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index:1050;"></div>
+-- <div id="uploadNotification" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index:1050;"></div>
   <nav class="navbar navbar-dark bg-dark">
     <div class="container d-flex align-items-center">
       <span class="navbar-brand">Practice Session Notes</span>
@@ -265,7 +265,7 @@ function start() {
     uploadCard.classList.remove('d-none');
   }
 
- async function upload() {
+async function upload() {
   try {
     const file = fileInput.files[0];
     if (!file) {
@@ -278,8 +278,8 @@ function start() {
       return;
     }
 
-    // Show uploading notification
-    showUploadNotification('Uploading...', 'info');
+    // Show uploading message
+    result.innerHTML = `<div class="alert alert-info text-center">Uploading... ⏳</div>`;
 
     const reader = new FileReader();
     reader.onload = async () => {
@@ -301,14 +301,14 @@ function start() {
         const out = await res.json();
 
         if (out.status === 'success') {
-          showUploadNotification('✅ Assignment uploaded successfully!', 'success');
+          result.innerHTML = `<div class="alert alert-success text-center">✅ Assignment uploaded successfully!</div>`;
           uploadCard.classList.add('d-none'); // hide upload card if needed
         } else {
-          showUploadNotification(`❌ Upload failed: ${out.message || 'Unknown error'}`, 'danger');
+          result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed: ${out.message || 'Unknown error'}</div>`;
         }
       } catch (err) {
         console.error(err);
-        showUploadNotification('❌ Upload failed. Please try again.', 'danger');
+        result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed. Please try again.</div>`;
       }
     };
 
@@ -316,9 +316,10 @@ function start() {
 
   } catch (err) {
     console.error(err);
-    alert('Upload error. Check console.');
+    result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload error. Check console.</div>`;
   }
 }
+
 
 // Helper function to show notifications
 function showUploadNotification(message, type='info') {
