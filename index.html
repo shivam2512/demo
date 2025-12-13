@@ -279,8 +279,8 @@ async function upload() {
     return;
   }
 
-  // Show uploading message inside uploadCard
-  result.innerHTML = `<div class="alert alert-info text-center">Uploading... ⏳</div>`;
+  // Show floating "Uploading..." notification
+  showFloatingNotification('Uploading... ⏳', 'info');
 
   const reader = new FileReader();
 
@@ -303,21 +303,35 @@ async function upload() {
       const out = await res.json();
 
       if (out.status === 'success') {
-        result.innerHTML = `<div class="alert alert-success text-center">✅ Assignment Submitted Successfully!</div>`;
-        uploadCard.classList.add('d-none'); // optionally hide upload section
+        showFloatingNotification('✅ Assignment Submitted Successfully!', 'success');
+        uploadCard.classList.add('d-none'); // hide upload form after success
       } else {
-        result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed: ${out.message || 'Unknown error'}</div>`;
+        showFloatingNotification(`❌ Upload failed: ${out.message || 'Unknown error'}`, 'danger');
       }
 
     } catch (err) {
       console.error(err);
-      result.innerHTML = `<div class="alert alert-danger text-center">❌ Upload failed. Check console for details.</div>`;
+      showFloatingNotification('❌ Upload failed. Check console for details.', 'danger');
     }
   };
 
   reader.readAsDataURL(file);
 }
 
+// Helper function to show floating notifications
+function showFloatingNotification(message, type='info') {
+  const notif = document.createElement('div');
+  notif.className = `alert alert-${type} text-center position-fixed top-0 start-50 translate-middle-x`;
+  notif.style.zIndex = 9999;
+  notif.style.minWidth = '250px';
+  notif.style.marginTop = '10px';
+  notif.textContent = message;
+  document.body.appendChild(notif);
+
+  setTimeout(() => {
+    notif.remove();
+  }, 5000);
+}
 
 
 // Helper function to show notifications
