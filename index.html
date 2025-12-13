@@ -264,7 +264,7 @@ function start() {
     uploadCard.classList.remove('d-none');
   }
 
- async function upload() {
+  async function upload() {
   try {
     const file = fileInput.files[0];
     if (!file) {
@@ -277,45 +277,34 @@ function start() {
       return;
     }
 
-    // Show upload marker
-    result.innerHTML = `<div class="alert alert-info">Uploading <span id="uploadSpinner">⏳</span>...</div>`;
-
     const reader = new FileReader();
     reader.onload = async () => {
       const payload = {
         action: 'upload',
-        name: studentData.name,
-        mobile: studentData.mobile,
+        name: studentData.name,   // ✅ use studentData
+        mobile: studentData.mobile, // ✅ use studentData
         fileName: file.name,
         mimeType: file.type,
         file: reader.result.split(',')[1]
       };
 
-      try {
-        const res = await fetch(API, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
+      const res = await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
 
-        const out = await res.json();
+      const out = await res.json();
 
-        if (out.status === 'success') {
-          result.innerHTML = `
-            <div class="alert alert-success">
-              ✅ Assignment uploaded successfully!
-            </div>`;
-          uploadCard.classList.add('d-none');
-        } else {
-          result.innerHTML = `
-            <div class="alert alert-danger">
-              ❌ ${out.message || 'Upload failed'}
-            </div>`;
-        }
-      } catch (err) {
-        console.error(err);
+      if (out.status === 'success') {
+        result.innerHTML = `
+          <div class="alert alert-success">
+            Assignment uploaded successfully!
+          </div>`;
+        uploadCard.classList.add('d-none');
+      } else {
         result.innerHTML = `
           <div class="alert alert-danger">
-            ❌ Upload failed. Please try again.
+            ${out.message || 'Upload failed'}
           </div>`;
       }
     };
@@ -326,7 +315,6 @@ function start() {
     alert('Upload error. Check console.');
   }
 }
-
 
 
 
