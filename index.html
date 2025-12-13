@@ -64,50 +64,41 @@
 
     <hr class="my-4">
     <section id="assignmentSection">
-      <h3>SQL Assignment</h3>
+  <h3>Assignment</h3>
 
-      <div id="studentDetailsCard" class="card p-3 mb-3">
-        <h5 class="mb-2">Enter your details before starting</h5>
-        <div class="row g-2">
-          <div class="col-md-6">
-            <input id="studentName" class="form-control" placeholder="Full name">
-          </div>
-          <div class="col-md-6">
-            <input id="studentMobile" class="form-control" placeholder="Mobile number">
-          </div>
-        </div>
-        <div class="mt-3 d-flex gap-2">
-          <button id="startAssignmentBtn" class="btn btn-primary" onclick="AssignmentModule.start()">Start Assignment</button>
-          <button id="clearStudentBtn" class="btn btn-outline-secondary" onclick="AssignmentModule.clearStudentDetails()">Clear</button>
-        </div>
-        <div class="form-text mt-2 text-muted">Students must fill details. After submitting, you cannot re-attempt (per browser).</div>
-      </div>
+  <!-- Student Details -->
+  <div id="studentCard" class="card p-3 mb-3">
+    <h5>Enter details to download assignment</h5>
+    <input id="studentName" class="form-control mb-2" placeholder="Full Name">
+    <input id="studentMobile" class="form-control mb-2" placeholder="Mobile Number">
+    <button class="btn btn-primary" onclick="Assignment.start()">Proceed</button>
+  </div>
 
-      <div id="assignmentCard" class="card mb-3 d-none">
-        <div class="card-body">
-          <div id="assignmentTitle" class="h5"></div>
-          <div id="assignmentQuestion" class="mb-3 text-muted"></div>
+  <!-- Download -->
+  <div id="downloadCard" class="card p-3 mb-3 d-none">
+    <a href="assignment.pdf"
+       download
+       class="btn btn-success"
+       onclick="Assignment.logDownload()">
+       Download Assignment
+    </a>
+  </div>
 
-          <label class="form-label">SQL Editor</label>
-          <!-- CodeMirror will mount here -->
-          <div id="codeEditor"></div>
-          <!-- fallback textarea (hidden unless CodeMirror fails) -->
-          <div id="editorFallbackContainer" style="display:none; margin-top:8px;">
-            <textarea id="assignmentEditorFallback" rows="10" class="form-control" placeholder="Type SQL here"></textarea>
-          </div>
+  <!-- Upload -->
+  <div id="uploadCard" class="card p-3 d-none">
+    <input type="file"
+           id="fileInput"
+           class="form-control"
+           accept=".pdf,.doc,.docx">
+    <button class="btn btn-primary mt-3" onclick="Assignment.upload()">Upload</button>
+    <div id="result" class="mt-3"></div>
+  </div>
 
-          <div class="mt-3 d-flex gap-2">
-            <button id="submitAssignmentBtn" class="btn btn-success" onclick="AssignmentModule.submit()">Submit</button>
-            <button id="showSampleBtn" class="btn btn-outline-info" onclick="AssignmentModule.insertSample()">Show Sample</button>
-            <button id="cancelAssignmentBtn" class="btn btn-outline-secondary" onclick="AssignmentModule.cancel()">Cancel</button>
-          </div>
+  <!-- Admin -->
+  <button class="btn btn-dark mt-4" onclick="Assignment.admin()">Admin Dashboard</button>
+</section>
 
-          <div id="assignmentResult" class="mt-3"></div>
-        </div>
-      </div>
 
-      <div id="alreadySubmittedCard" class="alert alert-success d-none">You have already submitted this assignment. Thank you!</div>
-    </section>
 
   </main>
 
@@ -251,163 +242,7 @@
     // start notes load
     loadNotes();
 
-    /***********************
-     AssignmentModule (CodeMirror)
-    ***********************/
-    const AssignmentModule = (function(){
-      const GS_SCRIPT_URL = ''; // put your Apps Script URL here if you want server POST
-      const STORAGE_KEY_SUBMISSIONS = 'assign_submissions_v2';
-      const STORAGE_KEY_STUDENT = 'assign_student_v2';
-      const ASSIGNMENT = {
-        id: 1,
-        title: 'SQL Basics Assignment',
-        question: `1) Create table EMP (ID INT, NAME TEXT, SALARY INT)\n2) Insert at least 3 rows\n3) Write a SELECT query to fetch employees with SALARY > 5000`,
-        sample: `-- Example:\nCREATE TABLE EMP (ID INTEGER, NAME TEXT, SALARY INTEGER);\nINSERT INTO EMP VALUES (1,'Alice',6000);\nINSERT INTO EMP VALUES (2,'Bob',4500);\nINSERT INTO EMP VALUES (3,'Charlie',7000);\n\nSELECT * FROM EMP WHERE SALARY > 5000;`
-      };
-
-      let submissions = [];
-      // codeEditor is created by createCodeMirrorEditor and stored on window.codeEditor
-      function init(){
-        try { submissions = JSON.parse(localStorage.getItem(STORAGE_KEY_SUBMISSIONS) || '[]'); } catch(e){ submissions = []; }
-        const savedStudent = JSON.parse(localStorage.getItem(STORAGE_KEY_STUDENT) || 'null');
-        if(savedStudent && savedStudent.name){
-          document.getElementById('studentName').value = savedStudent.name || '';
-          document.getElementById('studentMobile').value = savedStudent.mobile || '';
-          if(hasSubmitted(savedStudent)) showAlreadySubmitted();
-        }
-      }
-
-      function hasSubmitted(student){
-        if(!student) return false;
-        return submissions.some(s => s.name === student.name && s.mobile === student.mobile && s.assignmentId === ASSIGNMENT.id);
-      }
-
-      async function start(){
-        const name = document.getElementById('studentName').value.trim();
-        const mobile = document.getElementById('studentMobile').value.trim();
-        if(!name || !mobile){ alert('Please enter name and mobile number before starting the assignment.'); return; }
-        const student = { name, mobile };
-        localStorage.setItem(STORAGE_KEY_STUDENT, JSON.stringify(student));
-        if(hasSubmitted(student)){ showAlreadySubmitted(); return; }
-
-        document.getElementById('studentDetailsCard').classList.add('d-none');
-        document.getElementById('assignmentCard').classList.remove('d-none');
-        document.getElementById('assignmentTitle').textContent = ASSIGNMENT.title;
-        document.getElementById('assignmentQuestion').textContent = ASSIGNMENT.question;
-        document.getElementById('assignmentResult').innerHTML = '';
-
-        // create CodeMirror editor after visible
-        setTimeout(async ()=> {
-          await createCodeMirrorEditor(ASSIGNMENT.sample);
-          // ensure editor focused
-          setTimeout(()=>{ try { if(window.codeEditor) window.codeEditor.focus(); else document.getElementById('assignmentEditorFallback').focus(); } catch(e){} }, 120);
-        }, 80);
-      }
-
-      function cancel(){
-        document.getElementById('assignmentCard').classList.add('d-none');
-        document.getElementById('studentDetailsCard').classList.remove('d-none');
-      }
-
-      function clearStudentDetails(){
-        localStorage.removeItem(STORAGE_KEY_STUDENT);
-        document.getElementById('studentName').value = '';
-        document.getElementById('studentMobile').value = '';
-        document.getElementById('editorFallbackContainer').style.display = 'none';
-        document.getElementById('assignmentCard').classList.add('d-none');
-        document.getElementById('alreadySubmittedCard').classList.add('d-none');
-        document.getElementById('studentDetailsCard').classList.remove('d-none');
-      }
-
-      function gradeQuery(query){
-        let score=0; const q = (query||'').toLowerCase();
-        if(q.includes('select')) score+=30;
-        if(q.includes('from')) score+=20;
-        if(q.includes('where')) score+=20;
-        if(q.includes('create')) score+=15;
-        if(q.includes('insert')) score+=15;
-        return Math.min(100, score);
-      }
-
-      async function submit(){
-        const student = JSON.parse(localStorage.getItem(STORAGE_KEY_STUDENT) || 'null');
-        if(!student || !student.name){ alert('Provide your details first'); return; }
-        if(hasSubmitted(student)){ alert('You have already submitted this assignment.'); showAlreadySubmitted(); return; }
-
-        // Get query from CodeMirror or fallback textarea
-        let query = '';
-        if(window.codeEditor && window.codeEditor.state){
-          try { query = window.codeEditor.state.doc.toString().trim(); } catch(e){ query = ''; }
-        } else {
-          const ta = document.getElementById('assignmentEditorFallback');
-          query = ta ? ta.value.trim() : '';
-        }
-
-        if(!query){ alert('Please write your SQL before submitting.'); return; }
-
-        const score = gradeQuery(query);
-        const entry = { assignmentId: ASSIGNMENT.id, name: student.name, mobile: student.mobile, query, score, submittedAt: new Date().toISOString() };
-        submissions.unshift(entry);
-        localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(submissions));
-
-        document.getElementById('assignmentResult').innerHTML = `<div class="alert alert-info">Submitted! Score: <strong>${score}</strong>/100</div>`;
-        document.getElementById('assignmentCard').classList.add('d-none');
-        document.getElementById('alreadySubmittedCard').classList.remove('d-none');
-
-        if(GS_SCRIPT_URL && GS_SCRIPT_URL.trim()){
-          try { await sendToServer(entry); } catch(e){ console.warn('Send to server failed', e); }
-        }
-      }
-
-      async function sendToServer(entry){
-        const payload = { action:'submitAssignment', payload: entry };
-        try {
-          const r = await fetch(GS_SCRIPT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-          const txt = await r.text();
-          console.log('GS response', txt);
-        } catch(e){ console.warn('GS send failed', e); }
-      }
-
-      function insertSample(){
-        if(window.codeEditor && window.codeEditor.state){ try { const view = window.codeEditor; view.dispatch({ changes: { from:0, to: view.state.doc.length, insert: ASSIGNMENT.sample } }); view.focus(); } catch(e){} }
-        else { const ta = document.getElementById('assignmentEditorFallback'); if(ta) ta.value = ASSIGNMENT.sample; }
-      }
-
-      function showAlreadySubmitted(){
-        document.getElementById('studentDetailsCard').classList.add('d-none');
-        document.getElementById('assignmentCard').classList.add('d-none');
-        document.getElementById('alreadySubmittedCard').classList.remove('d-none');
-      }
-
-      function showAdminView(){
-        const modal = document.getElementById('adminModal');
-        const body = document.getElementById('adminModalBody');
-        body.innerHTML = '';
-        if(!submissions.length){ body.innerHTML = '<div class="text-muted">No submissions yet.</div>'; modal.style.display='block'; return; }
-        const table = document.createElement('table'); table.className='table table-sm';
-        table.innerHTML = `<thead><tr><th>#</th><th>Name</th><th>Mobile</th><th>Score</th><th>Submitted At</th><th>Query</th></tr></thead>`;
-        const tb = document.createElement('tbody');
-        submissions.forEach((r, i)=> {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.mobile)}</td><td>${r.score}</td><td>${new Date(r.submittedAt).toLocaleString()}</td><td><pre style="white-space:pre-wrap">${escapeHtml(r.query)}</pre></td>`;
-          tb.appendChild(tr);
-        });
-        table.appendChild(tb); body.appendChild(table); modal.style.display='block';
-      }
-
-      function exportCSV(){
-        if(!submissions.length){ alert('No submissions to export'); return; }
-        const rows=[['assignmentId','name','mobile','score','submittedAt','query']];
-        submissions.forEach(r => rows.push([r.assignmentId, r.name, r.mobile, r.score, r.submittedAt, r.query.replace(/\n/g,' ')]));
-        const csv = rows.map(r=> r.map(c=> `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-        const blob = new Blob([csv], { type:'text/csv' }); const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'submissions.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-      }
-
-      function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"'`=\/]/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;' })[ch]); }
-
-      return { init, start, submit, insertSample, cancel, clearStudentDetails, hasSubmitted, showAlreadySubmitted, showAdminView, exportCSV };
-    })();
+   
 
     // init on load
     window.addEventListener('load', function(){
@@ -416,5 +251,111 @@
       window.AssignmentModule = AssignmentModule;
     });
   </script>
+
+
+  <script>
+const Assignment = (() => {
+  const API = 'PASTE_YOUR_WEB_APP_URL';
+  const KEY = 'assignment_done_v1';
+
+  function start() {
+    if (localStorage.getItem(KEY)) {
+      alert('You have already downloaded the assignment.');
+      return;
+    }
+
+    const name = studentName.value.trim();
+    const mobile = studentMobile.value.trim();
+    if (!name || !mobile) {
+      alert('Enter name and mobile number');
+      return;
+    }
+
+    localStorage.setItem(KEY, JSON.stringify({ name, mobile }));
+    studentCard.classList.add('d-none');
+    downloadCard.classList.remove('d-none');
+  }
+
+  function logDownload() {
+    downloadCard.classList.add('d-none');
+    uploadCard.classList.remove('d-none');
+  }
+
+  function upload() {
+    const file = fileInput.files[0];
+    if (!file) {
+      alert('Select a file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const data = JSON.parse(localStorage.getItem(KEY));
+
+      const payload = {
+        action: 'upload',
+        name: data.name,
+        mobile: data.mobile,
+        fileName: file.name,
+        mimeType: file.type,
+        file: reader.result.split(',')[1]
+      };
+
+      const res = await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      const out = await res.json();
+      if (out.status === 'success') {
+        result.innerHTML =
+          `<div class="alert alert-success">
+            Assignment uploaded successfully!
+          </div>`;
+      }
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  async function admin() {
+    const res = await fetch(API, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'fetchAdmin' })
+    });
+
+    const data = await res.json();
+    if (data.status !== 'success') return;
+
+    let html = `<table class="table table-bordered">
+      <tr><th>Name</th><th>Mobile</th><th>File</th></tr>`;
+
+    data.rows.forEach(r => {
+      html += `<tr>
+        <td>${r[1]}</td>
+        <td>${r[2]}</td>
+        <td><a href="${r[4]}" target="_blank">Download</a></td>
+      </tr>`;
+    });
+
+    html += `</table>`;
+
+    document.body.insertAdjacentHTML('beforeend',
+      `<div class="modal show d-block">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content p-3">
+            <h5>Admin Dashboard</h5>
+            ${html}
+            <button class="btn btn-secondary mt-3"
+              onclick="this.closest('.modal').remove()">Close</button>
+          </div>
+        </div>
+      </div>`);
+  }
+
+  return { start, logDownload, upload, admin };
+})();
+</script>
+
 </body>
 </html>
