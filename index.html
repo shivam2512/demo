@@ -254,7 +254,6 @@
 
     function clearNotesView(){ document.getElementById("notesContainer").innerHTML=""; document.getElementById("emptyState").classList.add("d-none"); document.getElementById("clearViewBtn").classList.add("d-none"); }
     function downloadSQLFile(session, filename){ const sessionNotes = allNotes.filter(n=>n.session === session); const sqlContent = sessionNotes.map(n=>`-- ${n.date} : ${n.title}\n${n.body}\n\n`).join(""); const blob = new Blob([sqlContent], { type: "text/sql" }); const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showNotification(`${filename} has been updated and downloaded!`); }
-    <script>
 function downloadLinuxFile(session, filename) {
   const linuxNotes = allNotes.filter(n =>
     n.subject === 'LINUX' && n.session === session
@@ -282,7 +281,7 @@ function downloadLinuxFile(session, filename) {
   URL.revokeObjectURL(url);
   showNotification(`${filename} downloaded successfully!`);
 }
-</script>
+
 
     function showNotification(message){ const notif=document.createElement("div"); notif.className="alert alert-success text-center"; notif.textContent=message; document.body.prepend(notif); setTimeout(()=>notif.remove(),5000); }
     function updateLatestNotification(){ if(!allNotes.length){ document.getElementById("latestNotification").textContent="No notes available yet."; return; } const sorted=[...allNotes].sort((a,b)=> toJSDate(b.date)-toJSDate(a.date)); const latestDate=sorted[0].date; const latestDayNotes = allNotes.filter(n=>n.date===latestDate); const latestNote = latestDayNotes.find(n=>n.session==='Evening') || latestDayNotes[0]; document.getElementById("latestNotification").textContent = `🔔 Latest notes available: ${latestNote.date} (${latestNote.session} session, uploaded at ${latestNote.time})`; }
