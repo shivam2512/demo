@@ -187,12 +187,14 @@
       }
     }
   </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+
   <!-- jsPDF CDN (ADD HERE) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-<script>
-  // your existing scripts start here
-</script>
+
 
 
   <script>
@@ -288,9 +290,11 @@ const subjects = [
 if (subjects.length) {
   dayCell.setAttribute("data-bs-toggle", "tooltip");
   dayCell.setAttribute(
-    "data-bs-title",
-    "Subjects:\n• " + subjects.join("\n• ")
-  );
+  "data-bs-title",
+  "Subjects:<br>• " + subjects.join("<br>• ")
+);
+dayCell.setAttribute("data-bs-html", "true");
+
 }
 
        
@@ -302,6 +306,15 @@ if (subjects.length) {
       const totalCells = (firstDay-1) + daysInMonth; const trailing = (7 - (totalCells % 7)) % 7;
       for(let i=0;i<trailing;i++){ const emptyCell=document.createElement("div"); emptyCell.className="calendar-day"; calendar.appendChild(emptyCell); }
       calendarBody.appendChild(calendar); card.appendChild(calendarBody); container.appendChild(card);
+// 🔹 Activate Bootstrap tooltips AFTER calendar is rendered
+setTimeout(() => {
+  document
+    .querySelectorAll('[data-bs-toggle="tooltip"]')
+    .forEach(el => new bootstrap.Tooltip(el));
+}, 0);
+
+
+
     }
 
     function prevMonth(){ currentMonthIndex--; if(currentMonthIndex<0){ currentMonthIndex=11; currentYear--; } renderCalendar(); }
