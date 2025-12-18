@@ -72,8 +72,8 @@
     <div class="mb-3 d-flex gap-2 flex-wrap">
       <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download SQL Afternoon Notes</button>
       <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download SQL Evening Notes</button>
-      <button class="btn btn-warning" onclick="downloadPDF('LINUX','Afternoon','Linux_Afternoon.pdf')">Download Linux Afternoon Notes</button>
-      <button class="btn btn-danger" onclick="downloadPDF('LINUX','Evening','Linux_Evening.pdf')">Download Linux Evening Notes</button>
+      <button class="btn btn-warning" onclick="downloadLinuxPDF('Afternoon','Linux_Afternoon.pdf')">Download Linux Afternoon Notes</button>
+      <button class="btn btn-danger" onclick="downloadLinuxPDF('Evening','Linux_Evening.pdf')">Download Linux Evening Notes</button>
     </div>
 
     <div class="nav-controls d-flex justify-content-between align-items-center mb-2">
@@ -283,33 +283,42 @@ function downloadSQLFile(session, filename) {
 
   showNotification(`${filename} downloaded`);
 }
-function downloadPDF(subject, session, filename) {
-  const notes = allNotes.filter(
-    n => n.subject === subject && n.session === session
+function downloadLinuxPDF(session, filename) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // filter ONLY Linux notes by session
+  const linuxNotes = allNotes.filter(n =>
+    n.session === session && n.subject === 'LINUX'
   );
 
-  if (!notes.length) {
-    showNotification(`No ${subject} notes for ${session}`, 'warning');
+  if (!linuxNotes.length) {
+    showNotification(`No Linux notes found for ${session}`, 'danger');
     return;
   }
 
-  const content = notes.map(n =>
-    `${n.date} - ${n.title}\n\n${n.body}\n\n----------------------\n`
-  ).join("\n");
+  let y = 10;
 
-  const blob = new Blob([content], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
+  linuxNotes.forEach((n, index) => {
+    doc.setFontSize(12);
+    doc.text(`${n.date} - ${n.title}`, 10, y);
+    y += 8;
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(n.body, 180);
+    doc.text(lines, 10, y);
+    y += lines.length * 6 + 6;
 
-  showNotification(`${filename} downloaded`);
+    if (y > 270 && index < linuxNotes.length - 1) {
+      doc.addPage();
+      y = 10;
+    }
+  });
+
+  doc.save(filename);
+  showNotification(`${filename} downloaded successfully!`);
 }
+
 
 
     function showNotification(message){ const notif=document.createElement("div"); notif.className="alert alert-success text-center"; notif.textContent=message; document.body.prepend(notif); setTimeout(()=>notif.remove(),5000); }
