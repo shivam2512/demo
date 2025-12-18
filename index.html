@@ -236,7 +236,19 @@
       const today = new Date();
       for(let d=1; d<=daysInMonth; d++){
         const dayStr=String(d).padStart(2,'0');
-        const hasNote = allNotes.some(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; });
+        // const hasNote = allNotes.some(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; });
+        const dayNotes = allNotes.filter(n => {
+  const { day, monthNum, year } = parseNoteDate(n.date);
+  return day === dayStr &&
+         monthNum === currentMonthIndex + 1 &&
+         Number(year) === currentYear;
+});
+
+if (dayNotes.length) {
+  const subjects = [...new Set(dayNotes.map(n => n.subject))].join(", ");
+  dayCell.title = "Subjects: " + subjects;
+}
+
         const dayCell = document.createElement("div"); dayCell.className = "calendar-day" + (hasNote ? " has-notes": ""); dayCell.textContent = d;
         if(today.getMonth()===currentMonthIndex && today.getFullYear()===currentYear && today.getDate()===d) dayCell.classList.add("today");
         dayCell.addEventListener("click", ()=>{ const filtered = allNotes.filter(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; }); renderNotes(filtered); });
