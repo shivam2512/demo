@@ -370,14 +370,19 @@ function downloadLinuxPDF(session, filename) {
   let y = 10;
 
   linuxNotes.forEach((n, index) => {
-    doc.setFontSize(12);
-    doc.text(`${n.date} - ${n.title}`, 10, y);
-    y += 8;
 
-    doc.setFontSize(10);
-    const lines = doc.splitTextToSize(n.body, 180);
-    doc.text(lines, 10, y);
-    y += lines.length * 6 + 6;
+  // 🔹 DATE + TITLE (BOLD)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text(`${n.date} - ${n.title}`, 10, y);
+  y += 8;
+
+  // 🔹 BODY (NORMAL)
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  const lines = doc.splitTextToSize(n.body, 180);
+  doc.text(lines, 10, y);
+  y += lines.length * 6 + 6;
 
     if (y > 270 && index < linuxNotes.length - 1) {
       doc.addPage();
