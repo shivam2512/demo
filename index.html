@@ -72,8 +72,8 @@
     <div class="mb-3 d-flex gap-2 flex-wrap">
       <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download SQL Afternoon Notes</button>
       <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download SQL Evening Notes</button>
-      <button class="btn btn-warning" onclick="downloadLinuxFile('Afternoon','Linux_Afternoon.pdf')"> Download Linux Afternoon Notes</button>
-      <button class="btn btn-danger" onclick="downloadLinuxFile('Evening','Linux_Evening.pdf')">Download Linux Evening Notes</button>
+      <button class="btn btn-warning" onclick="downloadPDF('LINUX','Afternoon','Linux_Afternoon.pdf')">Download Linux Afternoon Notes</button>
+      <button class="btn btn-danger" onclick="downloadPDF('LINUX','Evening','Linux_Evening.pdf')">Download Linux Evening Notes</button>
     </div>
 
     <div class="nav-controls d-flex justify-content-between align-items-center mb-2">
@@ -253,22 +253,17 @@
     }
 
     function clearNotesView(){ document.getElementById("notesContainer").innerHTML=""; document.getElementById("emptyState").classList.add("d-none"); document.getElementById("clearViewBtn").classList.add("d-none"); }
-    function downloadSQLFile(session, filename){ const sessionNotes = allNotes.filter(n=>n.session === session); const sqlContent = sessionNotes.map(n=>`-- ${n.date} : ${n.title}\n${n.body}\n\n`).join(""); const blob = new Blob([sqlContent], { type: "text/sql" }); const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showNotification(`${filename} has been updated and downloaded!`); }
-function downloadLinuxFile(session, filename) {
-  const linuxNotes = allNotes.filter(n =>
-    n.subject === 'LINUX' && n.session === session
+    //function downloadSQLFile(session, filename){ const sessionNotes = allNotes.filter(n=>n.session === session); const sqlContent = sessionNotes.map(n=>`-- ${n.date} : ${n.title}\n${n.body}\n\n`).join(""); const blob = new Blob([sqlContent], { type: "text/sql" }); const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showNotification(`${filename} has been updated and downloaded!`); }
+function downloadSQLFile(session, filename) {
+  const sessionNotes = allNotes.filter(
+    n => n.session === session && n.subject === "SQL"
   );
 
-  if (!linuxNotes.length) {
-    alert(`No Linux notes found for ${session} session`);
-    return;
-  }
+  const sqlContent = sessionNotes
+    .map(n => `-- ${n.date} : ${n.title}\n${n.body}\n\n`)
+    .join("");
 
-  const content = linuxNotes.map(n =>
-    `# ${n.date} : ${n.title}\n\n${n.body}\n\n`
-  ).join('-----------------------------\n\n');
-
-  const blob = new Blob([content], { type: "text/plain" });
+  const blob = new Blob([sqlContent], { type: "text/sql" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
@@ -277,9 +272,36 @@ function downloadLinuxFile(session, filename) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-
   URL.revokeObjectURL(url);
-  showNotification(`${filename} downloaded successfully!`);
+
+  showNotification(`${filename} downloaded`);
+}
+function downloadPDF(subject, session, filename) {
+  const notes = allNotes.filter(
+    n => n.subject === subject && n.session === session
+  );
+
+  if (!notes.length) {
+    showNotification(`No ${subject} notes for ${session}`, 'warning');
+    return;
+  }
+
+  const content = notes.map(n =>
+    `${n.date} - ${n.title}\n\n${n.body}\n\n----------------------\n`
+  ).join("\n");
+
+  const blob = new Blob([content], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  showNotification(`${filename} downloaded`);
 }
 
 
