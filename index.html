@@ -407,17 +407,23 @@ function downloadLinuxPDF(session, filename) {
     return;
   }
 
+  const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
+
+  const marginLeft = 10;
+  const marginRight = 10;
   const marginTop = 10;
   const marginBottom = 15;
+
+  const usableWidth = pageWidth - marginLeft - marginRight;
   const lineHeight = 6;
 
   let y = marginTop;
 
-  linuxNotes.forEach((n, noteIndex) => {
+  linuxNotes.forEach(n => {
 
-    // 🔹 Title (Bold)
-    doc.setFont("courier", "bold");   // MONOSPACE
+    /* ---------- TITLE ---------- */
+    doc.setFont("courier", "bold");
     doc.setFontSize(12);
 
     if (y + lineHeight > pageHeight - marginBottom) {
@@ -425,22 +431,28 @@ function downloadLinuxPDF(session, filename) {
       y = marginTop;
     }
 
-    doc.text(`${n.date} - ${n.title}`, 10, y);
+    doc.text(`${n.date} - ${n.title}`, marginLeft, y);
     y += lineHeight + 2;
 
-    // 🔹 Body (Monospace)
+    /* ---------- BODY ---------- */
     doc.setFont("courier", "normal");
     doc.setFontSize(10);
 
-    const lines = n.body.split("\n");
+    const rawLines = n.body.split("\n");
 
-    lines.forEach(line => {
-      if (y + lineHeight > pageHeight - marginBottom) {
-        doc.addPage();
-        y = marginTop;
-      }
-      doc.text(line, 10, y);
-      y += lineHeight;
+    rawLines.forEach(rawLine => {
+
+      // 🔹 Wrap line to page width
+      const wrappedLines = doc.splitTextToSize(rawLine, usableWidth);
+
+      wrappedLines.forEach(wLine => {
+        if (y + lineHeight > pageHeight - marginBottom) {
+          doc.addPage();
+          y = marginTop;
+        }
+        doc.text(wLine, marginLeft, y);
+        y += lineHeight;
+      });
     });
 
     y += lineHeight; // space between notes
