@@ -396,55 +396,54 @@ function downloadSQLFile(session, filename) {
 
 function downloadLinuxPDF(session, filename) {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF("p", "mm", "a4");
 
   const linuxNotes = allNotes.filter(
-    n => n.session === session && n.subject === 'LINUX'
+    n => n.session === session && n.subject === "LINUX"
   );
 
   if (!linuxNotes.length) {
-    showNotification(`No Linux notes found for ${session}`, 'danger');
+    showNotification(`No Linux notes found for ${session}`, "danger");
     return;
   }
 
   const pageHeight = doc.internal.pageSize.height;
   const marginTop = 10;
   const marginBottom = 15;
-  const usableHeight = pageHeight - marginBottom;
+  const lineHeight = 6;
 
   let y = marginTop;
 
-  linuxNotes.forEach((n, index) => {
+  linuxNotes.forEach((n, noteIndex) => {
 
-    /* ---------- TITLE ---------- */
-    doc.setFont("helvetica", "bold");
+    // 🔹 Title (Bold)
+    doc.setFont("courier", "bold");   // MONOSPACE
     doc.setFontSize(12);
 
-    // 🔹 Page break BEFORE title
-    if (y + 8 > usableHeight) {
+    if (y + lineHeight > pageHeight - marginBottom) {
       doc.addPage();
       y = marginTop;
     }
 
     doc.text(`${n.date} - ${n.title}`, 10, y);
-    y += 8;
+    y += lineHeight + 2;
 
-    /* ---------- BODY ---------- */
-    doc.setFont("helvetica", "normal");
+    // 🔹 Body (Monospace)
+    doc.setFont("courier", "normal");
     doc.setFontSize(10);
 
-    const lines = doc.splitTextToSize(n.body, 180);
-    const lineHeight = 5;
-    const blockHeight = lines.length * lineHeight;
+    const lines = n.body.split("\n");
 
-    // 🔹 Page break BEFORE body
-    if (y + blockHeight > usableHeight) {
-      doc.addPage();
-      y = marginTop;
-    }
+    lines.forEach(line => {
+      if (y + lineHeight > pageHeight - marginBottom) {
+        doc.addPage();
+        y = marginTop;
+      }
+      doc.text(line, 10, y);
+      y += lineHeight;
+    });
 
-    doc.text(lines, 10, y);
-    y += blockHeight + 6;
+    y += lineHeight; // space between notes
   });
 
   doc.save(filename);
