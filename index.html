@@ -46,45 +46,9 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* 🎆 New Year Countdown Animation */
-#newYearCountdown {
-  animation: dropDown 0.7s ease-out;
-}
-
-@keyframes dropDown {
-  from { transform: translate(-50%, -100%); }
-  to   { transform: translate(-50%, 0); }
-}
-
-
   </style>
 </head>
 <body>
-  <!-- 🎆 New Year 2026 Countdown Banner -->
-<div id="newYearCountdown"
-     class="position-fixed top-0 start-50 translate-middle-x text-center shadow-lg d-none"
-     style="z-index:1060; width:100%; max-width:420px;">
-
-  <div class="bg-dark text-white p-3 rounded-bottom">
-    <h5 class="mb-1">🎉 Countdown to New Year 2026</h5>
-    <div id="countdownTimer" class="fs-5 fw-bold my-2"></div>
-
-    <small class="text-warning">
-      ⏰ Tick-tock… New beginnings await!
-    </small>
-
-    <div class="mt-2">
-      <button class="btn btn-sm btn-outline-light"
-              onclick="closeCountdown()">✖ Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- ⏱ Clock Ticking Sound -->
-<audio id="clockSound" loop>
-  <source src="https://assets.mixkit.co/sfx/preview/mixkit-clock-ticking-1059.mp3" type="audio/mpeg">
-</audio>
-
 <div id="uploadNotification" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index:1050;"></div>
   <nav class="navbar navbar-dark bg-dark">
     <div class="container d-flex align-items-center">
@@ -723,58 +687,6 @@ document.addEventListener('keydown', async function (e) {
 });
 </script>
 
-<script>
-(() => {
-  const banner = document.getElementById('newYearCountdown');
-  const timerEl = document.getElementById('countdownTimer');
-  const sound = document.getElementById('clockSound');
-
-  const dismissed = localStorage.getItem('ny2026CountdownClosed');
-  const targetDate = new Date('2026-01-01T00:00:00');
-
-  if (new Date() < targetDate && !dismissed) {
-    banner.classList.remove('d-none');
-  }
-
-  function updateCountdown() {
-    const now = new Date();
-    const diff = targetDate - now;
-
-    if (diff <= 0) {
-      timerEl.innerHTML = "🎆 Happy New Year 2026! 🎆";
-      sound.pause();
-      sound.currentTime = 0;
-      return;
-    }
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hrs  = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    const mins = Math.floor((diff / (1000 * 60)) % 60);
-    const secs = Math.floor((diff / 1000) % 60);
-
-    timerEl.innerHTML = `${days}d : ${hrs}h : ${mins}m : ${secs}s`;
-  }
-
-  setInterval(updateCountdown, 1000);
-  updateCountdown();
-
-  // 🔊 Enable sound after first click (browser rule)
-  document.addEventListener('click', () => {
-    if (!sound.paused) return;
-    sound.volume = 0.2;
-    sound.play().catch(() => {});
-  }, { once: true });
-})();
-
-function closeCountdown() {
-  document.getElementById('newYearCountdown').classList.add('d-none');
-  localStorage.setItem('ny2026CountdownClosed', 'true');
-
-  const sound = document.getElementById('clockSound');
-  sound.pause();
-  sound.currentTime = 0;
-}
-</script>
 
 </body>
 </html>
