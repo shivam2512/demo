@@ -815,6 +815,7 @@ document.addEventListener('DOMContentLoaded', function () {
     modal.show();
     setTimeout(() => modal.hide(), 6000);
     startFireworks(); // 🔥 trigger crackers
+    playNewYearSounds();
   }
 
   // ---------- FIREWORKS ----------
@@ -874,11 +875,43 @@ function startFireworks() {
 
 
 });
+
+
+function playNewYearSounds() {
+  const cracker = document.getElementById('crackerSound');
+  const bell = document.getElementById('bellSound');
+
+  if (!cracker || !bell) return;
+
+  // Play cracker sound immediately
+  cracker.volume = 0.6;
+  cracker.currentTime = 0;
+  cracker.play().catch(() => {});
+
+  // Play bell after a short delay
+  setTimeout(() => {
+    bell.volume = 0.8;
+    bell.currentTime = 0;
+    bell.play().catch(() => {});
+  }, 1200);
+}
+
+
 </script>
 
 
 <!-- Firecracker Canvas -->
 <canvas id="fireworksCanvas"></canvas>
+
+<audio id="crackerSound" preload="auto">
+  <source src="https://assets.mixkit.co/sfx/preview/mixkit-firework-explosion-1689.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="bellSound" preload="auto">
+  <source src="https://assets.mixkit.co/sfx/preview/mixkit-church-bell-hit-568.mp3" type="audio/mpeg">
+</audio>
+
+
 
 </body>
 </html>
