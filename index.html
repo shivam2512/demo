@@ -99,9 +99,37 @@
   100% { opacity: 0; transform: scale(0); }
 }
 
+#soundUnlock {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  z-index: 2000;
+  cursor: pointer;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+
   </style>
 </head>
 <body>
+
+  <div id="soundUnlock">
+  🔊 Tap to enable New Year sound
+</div>
+
+
+
   <!-- 🎆 New Year 2026 Greeting Modal -->
 <div class="modal fade" id="newYearModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -772,26 +800,7 @@ document.addEventListener('keydown', async function (e) {
   }
 });
 </script>
-<!-- <script>
-document.addEventListener('DOMContentLoaded', function () {
 
-  const alreadyShown = localStorage.getItem('newYear2026ModalShown');
-  const today = new Date();
-
-  const start = new Date('2026-01-01');
-  const end   = new Date('2026-01-07');
-
-  if (today >= start && today <= end && !alreadyShown) {
-    const modal = new bootstrap.Modal(
-      document.getElementById('newYearModal'),
-      { backdrop: 'static', keyboard: false }
-    );
-    modal.show();
-    localStorage.setItem('newYear2026ModalShown', 'true');
-  }
-
-});
-</script> -->
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -877,24 +886,30 @@ function startFireworks() {
 });
 
 
+
 function playNewYearSounds() {
   const cracker = document.getElementById('crackerSound');
   const bell = document.getElementById('bellSound');
 
-  if (!cracker || !bell) return;
+  cracker.volume = 0.7;
+  bell.volume = 0.8;
 
-  // Play cracker sound immediately
-  cracker.volume = 0.6;
   cracker.currentTime = 0;
-  cracker.play().catch(() => {});
+  cracker.play();
 
-  // Play bell after a short delay
   setTimeout(() => {
-    bell.volume = 0.8;
     bell.currentTime = 0;
-    bell.play().catch(() => {});
+    bell.play();
   }, 1200);
 }
+
+// 🔓 Unlock sound on first user interaction
+document.getElementById('soundUnlock').addEventListener('click', () => {
+  playNewYearSounds();
+  document.getElementById('soundUnlock').remove();
+});
+
+
 
 
 </script>
