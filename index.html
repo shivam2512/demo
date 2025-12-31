@@ -784,31 +784,31 @@ document.addEventListener('DOMContentLoaded', function () {
   const modalEl = document.getElementById('newYearModal');
   if (!modalEl) return;
 
-  // ---------- IST TIME HANDLING ----------
+  // ---- Get current IST time ----
   function getISTDate() {
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    return new Date(utc + (5.5 * 60 * 60 * 1000)); // IST
+    return new Date(utc + (5.5 * 60 * 60 * 1000));
   }
 
   const nowIST = getISTDate();
 
-  // End of tomorrow in IST (23:59:59)
+  // ---- Tomorrow End of Day IST ----
   const endIST = new Date(nowIST);
   endIST.setDate(endIST.getDate() + 1);
   endIST.setHours(23, 59, 59, 999);
 
-  // Optional: show only once per user in this period
-  const alreadyShown = sessionStorage.getItem('ny2026Shown');
+  // ---- Show modal on EVERY refresh within time window ----
+  if (nowIST <= endIST) {
+    const modal = new bootstrap.Modal(modalEl, {
+      backdrop: 'static',
+      keyboard: false
+    });
 
-  if (nowIST <= endIST && !alreadyShown) {
-    const modal = new bootstrap.Modal(modalEl);
     modal.show();
 
     // Auto close after 6 seconds
     setTimeout(() => modal.hide(), 6000);
-
-    sessionStorage.setItem('ny2026Shown', 'true');
   }
 
 });
