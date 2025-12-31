@@ -730,7 +730,7 @@ document.addEventListener('keydown', async function (e) {
   }
 });
 </script>
-<script>
+<!-- <script>
 document.addEventListener('DOMContentLoaded', function () {
 
   const alreadyShown = localStorage.getItem('newYear2026ModalShown');
@@ -749,7 +749,22 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
 });
+</script> -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const modalEl = document.getElementById('newYearModal');
+
+  if (!modalEl) {
+    console.error('New Year modal not found');
+    return;
+  }
+
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+});
 </script>
+
 
 
 </body>
