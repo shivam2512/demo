@@ -58,35 +58,62 @@
   border-top: none;
 }
 
+/* 🎆 New Year Modal Animations */
+.newyear-animate {
+  animation: zoomFadeIn 0.8s ease-out, glowPulse 2s infinite alternate;
+  border-radius: 18px;
+}
+
+@keyframes zoomFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes glowPulse {
+  from {
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
+  }
+  to {
+    box-shadow: 0 0 35px rgba(255, 193, 7, 0.9);
+  }
+}
+
   </style>
 </head>
 <body>
   <!-- 🎆 New Year 2026 Greeting Modal -->
 <div class="modal fade" id="newYearModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content text-center shadow-lg">
+    <div class="modal-content text-center shadow-lg newyear-animate">
 
-      <div class="modal-header bg-warning">
-        <h5 class="modal-title fw-bold w-100">🎉 Happy New Year 2026 🎉</h5>
+      <div class="modal-header bg-warning justify-content-center">
+        <h5 class="modal-title fw-bold">🎉 Happy New Year 2026 🎉</h5>
       </div>
 
       <div class="modal-body">
         <h4 class="mb-3">✨ Welcome to 2026 ✨</h4>
+
         <p class="fs-6">
           May this year bring you<br>
-          Success 📈, Health ❤️, and Happiness 😊
+          Success 📈, Health ❤️ & Happiness 😊
         </p>
-        <p class="text-muted small">
+
+        <p class="text-muted small mt-3">
           Thank you for being part of our learning journey 🚀
         </p>
-      </div>
 
-      <div class="modal-footer justify-content-center">
-        <button type="button"
-                class="btn btn-success"
-                data-bs-dismiss="modal">
-          🎊 Let’s Begin
-        </button>
+        <hr>
+
+        <p class="fw-semibold mb-0">
+          Regards,<br>
+          <span class="text-primary">Shivam</span>
+        </p>
       </div>
 
     </div>
@@ -750,25 +777,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 </script> -->
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const modalEl = document.getElementById('newYearModal');
 
-  if (!modalEl) {
-    console.error('New Year modal not found');
-    return;
-  }
+  const modalEl = document.getElementById('newYearModal');
+  if (!modalEl) return;
 
   const modal = new bootstrap.Modal(modalEl);
   modal.show();
 
-   // ⏱ Auto close after 5 seconds
+  // Auto close after 5 seconds
   setTimeout(() => {
     modal.hide();
   }, 5000);
+
 });
 </script>
+
 
 
 
