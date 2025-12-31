@@ -777,22 +777,43 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 </script> -->
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
   const modalEl = document.getElementById('newYearModal');
   if (!modalEl) return;
 
-  const modal = new bootstrap.Modal(modalEl);
-  modal.show();
+  // ---------- IST TIME HANDLING ----------
+  function getISTDate() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utc + (5.5 * 60 * 60 * 1000)); // IST
+  }
 
-  // Auto close after 5 seconds
-  setTimeout(() => {
-    modal.hide();
-  }, 5000);
+  const nowIST = getISTDate();
+
+  // End of tomorrow in IST (23:59:59)
+  const endIST = new Date(nowIST);
+  endIST.setDate(endIST.getDate() + 1);
+  endIST.setHours(23, 59, 59, 999);
+
+  // Optional: show only once per user in this period
+  const alreadyShown = sessionStorage.getItem('ny2026Shown');
+
+  if (nowIST <= endIST && !alreadyShown) {
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    // Auto close after 6 seconds
+    setTimeout(() => modal.hide(), 6000);
+
+    sessionStorage.setItem('ny2026Shown', 'true');
+  }
 
 });
 </script>
+
 
 
 
