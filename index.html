@@ -213,6 +213,19 @@
   </button>
 </div>
 
+<div id="mcqTimer" class="alert alert-warning d-none"></div>
+
+<div id="mcqForm" class="d-none">
+  <div id="mcqQuestions"></div>
+
+  <button class="btn btn-success mt-3" onclick="MCQ.submit()">
+    Submit Test
+  </button>
+</div>
+
+<div id="mcqResult" class="mt-3"></div>
+
+
 </section>
 
 
@@ -708,72 +721,65 @@ function showUploadNotification(message, type='info') {
 </script>
 <script>
 const MCQ = (() => {
-let mcqStudentData = null;
+
   const DURATION = 20 * 60;
   let timeLeft = DURATION;
   let timer;
+  let mcqStudentData = null;
+  let questions = [];
+  let violations = 0;
 
-  const questions = [
-    {
-      q: "Which command lists files?",
-      options: ["ls", "pwd", "cd", "whoami"],
-      answer: 0
-    },
-    {
-      q: "Which command shows current directory?",
-      options: ["ls", "pwd", "mkdir", "touch"],
-      answer: 1
-    },
-    {
-      q: "Which permission allows execution?",
-      options: ["r", "w", "x", "rw"],
-      answer: 2
+  async function start() {
+    const name = mcqName.value.trim();
+    const mobile = mcqMobile.value.trim();
+
+    if (!name || !mobile) {
+      alert("Enter name and mobile");
+      return;
     }
-  ];
 
-  function start() {
-const name = mcqName.value.trim();
-const mobile = mcqMobile.value.trim();
+    mcqStudentData = { name, mobile, assignment: "LINUX" };
 
-if (!name || !mobile) {
-  alert("Enter name and mobile number");
-  return;
-}
-
-mcqStudentData = { name, mobile };
-
-
-    checkAttempt().then(attempted => {
-      if (attempted) {
-        alert("❌ You already submitted this test");
-        return;
-      }
-
-      mcqStartCard.classList.add("d-none");
-      mcqForm.classList.remove("d-none");
-      mcqTimer.classList.remove("d-none");
-
-      render();
-      startTimer();
+    const res = await fetch(API, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "GET_MCQS",
+        assignment: "LINUX",
+        mobile
+      })
     });
+
+    const out = await res.json();
+
+    if (out.status !== "success") {
+      alert(out.message);
+      return;
+    }
+
+    questions = out.questions;
+
+    mcqStartCard.classList.add("d-none");
+    mcqForm.classList.remove("d-none");
+    mcqTimer.classList.remove("d-none");
+
+    render();
+    startTimer();
+    enableSecurity();
   }
 
   function render() {
     mcqQuestions.innerHTML = "";
 
     questions.forEach((q, i) => {
-      let html = `
-        <div class="card p-3 mb-3">
-          <strong>Q${i+1}. ${q.q}</strong>
-      `;
+      let html = `<div class="card p-3 mb-3">
+        <strong>Q${i + 1}. ${q.question}</strong>`;
 
       q.options.forEach((opt, idx) => {
         html += `
           <div>
             <input type="radio" name="q${i}" value="${idx}">
             ${opt}
-          </div>
-        `;
+          </div>`;
       });
 
       html += `</div>`;
@@ -786,68 +792,63 @@ mcqStudentData = { name, mobile };
     timer = setInterval(() => {
       timeLeft--;
       updateTimer();
-
-      if (timeLeft <= 0) {
-        submit();
-      }
+      if (timeLeft <= 0) submit();
     }, 1000);
   }
 
   function updateTimer() {
     const m = Math.floor(timeLeft / 60);
     const s = timeLeft % 60;
-    mcqTimer.textContent = `⏳ Time Left: ${m}:${String(s).padStart(2,'0')}`;
+    mcqTimer.textContent = `⏳ Time Left: ${m}:${String(s).padStart(2, '0')}`;
   }
 
   async function submit() {
     clearInterval(timer);
 
-    let score = 0;
     const answers = [];
 
     questions.forEach((q, i) => {
       const sel = document.querySelector(`input[name="q${i}"]:checked`);
-      const val = sel ? Number(sel.value) : -1;
-      answers.push(val);
-      if (val === q.answer) score++;
+      answers.push({
+        id: q.id,
+        selected: sel ? Number(sel.value) : -1
+      });
     });
 
     mcqForm.classList.add("d-none");
 
-    mcqResult.innerHTML = `
-      <div class="alert alert-success">
-        ✅ Submitted<br>
-        Score: ${score}/${questions.length}
-      </div>
-    `;
-
-    await fetch(API, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "submitMCQ",
-        name: mcqStudentData.name,
-mobile: mcqStudentData.mobile,
-        score,
-        answers
-      })
-    });
-  }
-
-  async function checkAttempt() {
     const res = await fetch(API, {
       method: "POST",
       body: JSON.stringify({
-        action: "checkMCQ",
-        mobile: mcqStudentData.mobile
+        action: "SUBMIT_MCQS",
+        ...mcqStudentData,
+        answers,
+        violations
       })
     });
+
     const out = await res.json();
-    return out.attempted;
+
+    mcqResult.innerHTML = `
+      <div class="alert alert-success">
+        ✅ Test Submitted<br>
+        Score: ${out.score}/${questions.length}
+      </div>`;
+  }
+
+  function enableSecurity() {
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) violations++;
+    });
+
+    window.onblur = () => violations++;
+    document.oncontextmenu = e => e.preventDefault();
   }
 
   return { start, submit };
 })();
 </script>
+
 
 <script>
 console.log('Admin shortcut script loaded');
