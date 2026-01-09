@@ -204,6 +204,11 @@
          class="form-control mb-2"
          placeholder="Mobile Number">
 
+         <input id="mcqEmail"
+       class="form-control mb-2"
+       placeholder="Email Address">
+
+
   <p class="text-muted mb-2">
     ⏱ Duration: 20 Minutes | One attempt only
   </p>
@@ -574,7 +579,7 @@ function downloadLinuxPDF(session, filename) {
 
   </script>
 <script>
-  window.API = 'https://script.google.com/macros/s/AKfycbzonQophXsP0vPAi_tX6HFJIxFDdkHqQG3fADpP_vx2D5ca2b_kUT_h8Z2CKJq9mUB8TA/exec';
+  window.API = 'https://script.google.com/macros/s/AKfycbw77n4it5qrcf2arbyCD1ZnpNUe0ckxCpZqU0wNYdmzvAgQyZzUtEJiitReMzDB1KoGtA/exec';
 </script>
 
 
@@ -732,13 +737,19 @@ const MCQ = (() => {
   async function start() {
     const name = mcqName.value.trim();
     const mobile = mcqMobile.value.trim();
+    const email = mcqEmail.value.trim(); // new
 
-    if (!name || !mobile) {
-      alert("Enter name and mobile");
+    if (!name || !mobile || !email) {
+      alert("Enter name, mobile, and email");
       return;
     }
 
-    mcqStudentData = { name, mobile, assignment: "LINUX" };
+    if (!email.includes("@")) {
+      alert("Enter a valid email address");
+      return;
+    }
+
+    mcqStudentData = { name, mobile, email, assignment: "LINUX" };
 
     const res = await fetch(API, {
       method: "POST",
@@ -765,7 +776,8 @@ const MCQ = (() => {
     render();
     startTimer();
     enableSecurity();
-  }
+}
+
 
   function render() {
     mcqQuestions.innerHTML = "";
@@ -820,20 +832,39 @@ const MCQ = (() => {
     const res = await fetch(API, {
       method: "POST",
       body: JSON.stringify({
-        action: "SUBMIT_MCQS",
-        ...mcqStudentData,
-        answers,
-        violations
-      })
+  action: "SUBMIT_MCQS",
+  name: mcqStudentData.name,
+  mobile: mcqStudentData.mobile,
+  email: mcqStudentData.email,
+  assignment: "LINUX",
+  answers,
+  violations
+})
     });
 
     const out = await res.json();
 
-    mcqResult.innerHTML = `
-      <div class="alert alert-success">
-        ✅ Test Submitted<br>
-        Score: ${out.score}/${questions.length}
-      </div>`;
+    const out = await res.json();
+
+if (out.status === "success") {
+  mcqResult.innerHTML = `
+    <div class="card p-3 shadow border-success">
+      <h5 class="text-success">✅ Test Submitted Successfully</h5>
+      <p><b>Score:</b> ${out.score} / ${questions.length}</p>
+      <p><b>Violations:</b> ${violations}</p>
+      <p class="text-muted mb-0">
+        ⏱ Test auto-locked after submission
+      </p>
+    </div>
+  `;
+} else {
+  mcqResult.innerHTML = `
+    <div class="alert alert-danger">
+      ❌ Submission failed: ${out.message || "Unknown error"}
+    </div>
+  `;
+}
+
   }
 
   function enableSecurity() {
