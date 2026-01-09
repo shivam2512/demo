@@ -193,29 +193,26 @@
 <hr class="my-4">
 
 <section id="mcqSection">
-  <h3>Linux MCQ Assignment</h3>
-
   <div id="mcqStartCard" class="card p-3 mb-3">
-    <p class="text-muted">⏱ Duration: 20 Minutes | One attempt only</p>
-    <button class="btn btn-danger" onclick="MCQ.start()">
-      Start Linux MCQ Test
-    </button>
-  </div>
+  <h5>Enter details to start Linux MCQ</h5>
 
-  <div id="mcqTimer"
-       class="alert alert-warning d-none text-center fw-bold">
-  </div>
+  <input id="mcqName"
+         class="form-control mb-2"
+         placeholder="Full Name">
 
-  <form id="mcqForm" class="d-none">
-    <div id="mcqQuestions"></div>
-    <button type="button"
-            class="btn btn-success mt-3"
-            onclick="MCQ.submit()">
-      Submit Test
-    </button>
-  </form>
+  <input id="mcqMobile"
+         class="form-control mb-2"
+         placeholder="Mobile Number">
 
-  <div id="mcqResult" class="mt-3"></div>
+  <p class="text-muted mb-2">
+    ⏱ Duration: 20 Minutes | One attempt only
+  </p>
+
+  <button class="btn btn-danger" onclick="MCQ.start()">
+    Start Linux MCQ Test
+  </button>
+</div>
+
 </section>
 
 
@@ -711,7 +708,7 @@ function showUploadNotification(message, type='info') {
 </script>
 <script>
 const MCQ = (() => {
-
+let mcqStudentData = null;
   const DURATION = 20 * 60;
   let timeLeft = DURATION;
   let timer;
@@ -735,10 +732,16 @@ const MCQ = (() => {
   ];
 
   function start() {
-    if (!studentData) {
-      alert("Enter name & mobile in Assignment section first");
-      return;
-    }
+const name = mcqName.value.trim();
+const mobile = mcqMobile.value.trim();
+
+if (!name || !mobile) {
+  alert("Enter name and mobile number");
+  return;
+}
+
+mcqStudentData = { name, mobile };
+
 
     checkAttempt().then(attempted => {
       if (attempted) {
@@ -822,8 +825,8 @@ const MCQ = (() => {
       method: "POST",
       body: JSON.stringify({
         action: "submitMCQ",
-        name: studentData.name,
-        mobile: studentData.mobile,
+        name: mcqStudentData.name,
+mobile: mcqStudentData.mobile,
         score,
         answers
       })
@@ -835,7 +838,7 @@ const MCQ = (() => {
       method: "POST",
       body: JSON.stringify({
         action: "checkMCQ",
-        mobile: studentData.mobile
+        mobile: mcqStudentData.mobile
       })
     });
     const out = await res.json();
