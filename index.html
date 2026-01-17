@@ -590,10 +590,11 @@ const LinuxMCQs = [
 
   <script>
 const Assignment = (() => {
-  
- 
-
   let studentData = null;
+
+  function getStudent() {
+    return studentData;
+  }
 
 function start() {
   const name = studentName.value.trim();
@@ -726,7 +727,8 @@ function showUploadNotification(message, type='info') {
 }
 
 
-  return { start, logDownload, upload, admin };
+ return { start, logDownload, upload, admin, getStudent };
+
 })();
 </script>
 
@@ -805,10 +807,13 @@ const LinuxMCQ = (() => {
   let timer = null;
 
   function start() {
-    if (!studentData) {
-      alert("Please enter your details first");
-      return;
-    }
+    const studentData = Assignment.getStudent();
+
+if (!studentData) {
+  alert("Please enter your details first");
+  return;
+}
+
 
     document.getElementById("linuxMcqCard").classList.add("d-none");
 
