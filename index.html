@@ -186,6 +186,25 @@
     <div id="result" class="mt-3"></div>
   </div>
 
+  <!-- ========================= -->
+<!-- LINUX MCQ ASSIGNMENT -->
+<!-- ========================= -->
+
+<hr>
+
+<div id="linuxMcqCard" class="card p-3 mb-3">
+  <h4>🧪 Linux MCQ Assignment</h4>
+  <p class="mb-2">⏱ Time Limit: <b>20 Minutes</b></p>
+
+  <button class="btn btn-dark" onclick="LinuxMCQ.start()">
+    Start Linux MCQ Test
+  </button>
+</div>
+
+<div id="mcqContainer" class="card p-3 mb-3 d-none"></div>
+<div id="scoreCard" class="card p-3 mb-3 d-none"></div>
+
+
   <!-- Admin -->
   
 </section>
@@ -537,7 +556,35 @@ function downloadLinuxPDF(session, filename) {
 
   </script>
 <script>
-  window.API = 'https://script.google.com/macros/s/AKfycbw35DNLh1KerYjpBilPcqOw1litT0nhtd5xnjQj1zBkmhI6QuwkXGDIca4qL8XsYGuP-g/exec';
+  window.API = 'https://script.google.com/macros/s/AKfycbyCnr2EeFgbvmPoxamRnFRNLv2xr51qs7WvkoaobrR3dNo6ib-_hGfrUaFsJ6zH7nZsJg/exec';
+</script>
+
+<script>
+/* ======================
+   LINUX MCQ QUESTIONS
+====================== */
+const LinuxMCQs = [
+  {
+    question: "Which command lists files in Linux?",
+    options: ["ls", "cd", "pwd", "mkdir"],
+    correct: 0
+  },
+  {
+    question: "Which file stores user account info?",
+    options: ["/etc/passwd", "/etc/shadow", "/etc/profile", "/etc/init"],
+    correct: 0
+  },
+  {
+    question: "Which command shows running processes?",
+    options: ["top", "ps", "jobs", "kill"],
+    correct: 0
+  },
+  {
+    question: "Permission for execution is?",
+    options: ["r", "w", "x", "rw"],
+    correct: 2
+  }
+];
 </script>
 
 
@@ -746,6 +793,117 @@ document.addEventListener('keydown', async function (e) {
     }
   }
 });
+</script>
+<script>
+/* =========================
+   LINUX MCQ MODULE
+========================= */
+const LinuxMCQ = (() => {
+
+  let answers = {};
+  let timeLeft = 20 * 60;
+  let timer = null;
+
+  function start() {
+    if (!studentData) {
+      alert("Please enter your details first");
+      return;
+    }
+
+    document.getElementById("linuxMcqCard").classList.add("d-none");
+
+    const box = document.getElementById("mcqContainer");
+    box.classList.remove("d-none");
+
+    render(box);
+    startTimer();
+  }
+
+  function render(box) {
+    let html = `<h5 id="mcqTimer" class="text-danger mb-3"></h5>`;
+
+    LinuxMCQs.forEach((q, i) => {
+      html += `
+        <div class="mb-3">
+          <strong>Q${i + 1}. ${q.question}</strong>
+          ${q.options.map((o, idx) => `
+            <div>
+              <input type="radio" name="q${i}"
+                onchange="LinuxMCQ.answer(${i},${idx})">
+              ${o}
+            </div>
+          `).join("")}
+        </div>
+      `;
+    });
+
+    html += `<button class="btn btn-success" onclick="LinuxMCQ.submit()">Submit</button>`;
+    box.innerHTML = html;
+  }
+
+  function answer(q, opt) {
+    answers[q] = opt;
+  }
+
+  function startTimer() {
+    updateTimer();
+    timer = setInterval(() => {
+      timeLeft--;
+      updateTimer();
+      if (timeLeft <= 0) submit();
+    }, 1000);
+  }
+
+  function updateTimer() {
+    const t = document.getElementById("mcqTimer");
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+    if (t) t.textContent = `⏱ Time Left: ${m}:${String(s).padStart(2,'0')}`;
+  }
+
+  async function submit() {
+    clearInterval(timer);
+
+    let score = 0;
+    LinuxMCQs.forEach((q, i) => {
+      if (answers[i] === q.correct) score++;
+    });
+
+    showScore(score);
+    send(score);
+  }
+
+  function showScore(score) {
+    document.getElementById("mcqContainer").classList.add("d-none");
+
+    const card = document.getElementById("scoreCard");
+    card.classList.remove("d-none");
+
+    card.innerHTML = `
+      <h4>📊 Score Card</h4>
+      <p><b>Name:</b> ${studentData.name}</p>
+      <p><b>Mobile:</b> ${studentData.mobile}</p>
+      <p><b>Score:</b> ${score} / ${LinuxMCQs.length}</p>
+      <p class="text-success">✅ Submitted Successfully</p>
+    `;
+  }
+
+  async function send(score) {
+    await fetch(API, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "linuxMcqSubmit",
+        name: studentData.name,
+        mobile: studentData.mobile,
+        score,
+        total: LinuxMCQs.length
+      })
+    });
+  }
+
+  return { start, answer, submit };
+
+})();
 </script>
 
 
