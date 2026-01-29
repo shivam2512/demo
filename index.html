@@ -135,6 +135,21 @@
 
   <main class="container py-4">
     <div class="mb-3 d-flex gap-2 flex-wrap">
+      <!-- 🔽 ADD BATCH SELECTOR HERE 🔽 -->
+  <div class="batch-selector">
+    <label>
+      <input type="radio" name="batch" value="BATCH_1"
+             onchange="setBatch(this.value)">
+      Batch 1
+    </label>
+
+    <label style="margin-left:15px;">
+      <input type="radio" name="batch" value="BATCH_2" checked
+             onchange="setBatch(this.value)">
+      Batch 2
+    </label>
+  </div>
+  <!-- 🔼 END BATCH SELECTOR 🔼 -->
       <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download SQL Afternoon Notes</button>
       <button class="btn btn-primary" onclick="downloadSQLFile('Evening','Evening.sql')">Download SQL Evening Notes</button>
       <button class="btn btn-warning" onclick="downloadLinuxPDF('Afternoon','Linux_Afternoon.pdf')">Download Linux Afternoon Notes</button>
@@ -269,6 +284,7 @@ const BATCH = {
   LINUX: null                    // set later when Linux batch starts
 };
 
+let activeBatch = "BATCH_2";
 
 
     /***********************
@@ -286,6 +302,25 @@ const BATCH = {
 function isAfterBatchStart(noteDateStr, batchStartDate) {
   if (!batchStartDate) return false;
   return toJSDate(noteDateStr) >= batchStartDate;
+}
+
+function setBatch(batch) {
+  activeBatch = batch;
+  showNotification(`Switched to ${batch.replace('_', ' ')}`);
+}
+
+function isNoteAllowedForBatch(note, batchStartDate) {
+  const noteDate = toJSDate(note.date);
+
+  if (activeBatch === "BATCH_1") {
+    return noteDate < batchStartDate;
+  }
+
+  if (activeBatch === "BATCH_2") {
+    return noteDate >= batchStartDate;
+  }
+
+  return false;
 }
 
 
@@ -435,11 +470,17 @@ setTimeout(() => {
 
 function downloadSQLFile(session, filename) {
 
+  // const sessionNotes = allNotes.filter(n =>
+  //   n.subject === "SQL" &&
+  //   n.session === session &&
+  //   isAfterBatchStart(n.date, BATCH.SQL)
+  // );
+
   const sessionNotes = allNotes.filter(n =>
-    n.subject === "SQL" &&
-    n.session === session &&
-    isAfterBatchStart(n.date, BATCH.SQL)
-  );
+  n.subject === "SQL" &&
+  n.session === session &&
+  isNoteAllowedForBatch(n, BATCH.SQL)
+);
 
   if (!sessionNotes.length) {
     showNotification(`No SQL notes for Batch 2 (${session})`, 'danger');
@@ -515,10 +556,16 @@ function downloadLinuxPDF(session, filename) {
   //   n => n.session === session && n.subject === "LINUX"
   // );
 
-  const linuxNotes = allNotes.filter(n =>
+//   const linuxNotes = allNotes.filter(n =>
+//   n.subject === "LINUX" &&
+//   n.session === session &&
+//   isAfterBatchStart(n.date, BATCH.LINUX)
+// );
+
+const linuxNotes = allNotes.filter(n =>
   n.subject === "LINUX" &&
   n.session === session &&
-  isAfterBatchStart(n.date, BATCH.LINUX)
+  isNoteAllowedForBatch(n, BATCH.LINUX)
 );
 
 
