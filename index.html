@@ -263,6 +263,14 @@
 
 
   <script>
+
+const BATCH = {
+  SQL: new Date(2026, 0, 22),     // 22-JAN-2026
+  LINUX: null                    // set later when Linux batch starts
+};
+
+
+
     /***********************
      Original notes/calendar (kept exactly)
     ***********************/
@@ -274,6 +282,12 @@
 
     function parseNoteDate(str){ const [d,mText,y] = str.split("-"); const mNum = Number(monthMap[mText.toUpperCase()]); return { day:d, monthNum:mNum, monthText:mText.toUpperCase(), year:y }; }
     function toJSDate(str){ const {day, monthNum, year} = parseNoteDate(str); return new Date(Number(year), monthNum-1, Number(day)); }
+
+function isAfterBatchStart(noteDateStr, batchStartDate) {
+  if (!batchStartDate) return false;
+  return toJSDate(noteDateStr) >= batchStartDate;
+}
+
 
     // async function loadNotes(){
     //   try {
@@ -396,10 +410,41 @@ setTimeout(() => {
 
     function clearNotesView(){ document.getElementById("notesContainer").innerHTML=""; document.getElementById("emptyState").classList.add("d-none"); document.getElementById("clearViewBtn").classList.add("d-none"); }
     //function downloadSQLFile(session, filename){ const sessionNotes = allNotes.filter(n=>n.session === session); const sqlContent = sessionNotes.map(n=>`-- ${n.date} : ${n.title}\n${n.body}\n\n`).join(""); const blob = new Blob([sqlContent], { type: "text/sql" }); const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showNotification(`${filename} has been updated and downloaded!`); }
+// function downloadSQLFile(session, filename) {
+//   const sessionNotes = allNotes.filter(
+//     n => n.session === session && n.subject === "SQL"
+//   );
+
+//   const sqlContent = sessionNotes
+//     .map(n => `-- ${n.date} : ${n.title}\n${n.body}\n\n`)
+//     .join("");
+
+//   const blob = new Blob([sqlContent], { type: "text/sql" });
+//   const url = URL.createObjectURL(blob);
+
+//   const a = document.createElement("a");
+//   a.href = url;
+//   a.download = filename;
+//   document.body.appendChild(a);
+//   a.click();
+//   a.remove();
+//   URL.revokeObjectURL(url);
+
+//   showNotification(`${filename} downloaded`);
+// }
+
 function downloadSQLFile(session, filename) {
-  const sessionNotes = allNotes.filter(
-    n => n.session === session && n.subject === "SQL"
+
+  const sessionNotes = allNotes.filter(n =>
+    n.subject === "SQL" &&
+    n.session === session &&
+    isAfterBatchStart(n.date, BATCH.SQL)
   );
+
+  if (!sessionNotes.length) {
+    showNotification(`No SQL notes for Batch 2 (${session})`, 'danger');
+    return;
+  }
 
   const sqlContent = sessionNotes
     .map(n => `-- ${n.date} : ${n.title}\n${n.body}\n\n`)
@@ -416,8 +461,11 @@ function downloadSQLFile(session, filename) {
   a.remove();
   URL.revokeObjectURL(url);
 
-  showNotification(`${filename} downloaded`);
+  showNotification(`${filename} (Batch 2) downloaded`);
 }
+
+
+
 // function downloadLinuxPDF(session, filename) {
 //   const { jsPDF } = window.jspdf;
 //   const doc = new jsPDF();
@@ -463,9 +511,16 @@ function downloadLinuxPDF(session, filename) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF("p", "mm", "a4");
 
-  const linuxNotes = allNotes.filter(
-    n => n.session === session && n.subject === "LINUX"
-  );
+  // const linuxNotes = allNotes.filter(
+  //   n => n.session === session && n.subject === "LINUX"
+  // );
+
+  const linuxNotes = allNotes.filter(n =>
+  n.subject === "LINUX" &&
+  n.session === session &&
+  isAfterBatchStart(n.date, BATCH.LINUX)
+);
+
 
   if (!linuxNotes.length) {
     showNotification(`No Linux notes found for ${session}`, "danger");
