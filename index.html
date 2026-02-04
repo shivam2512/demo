@@ -120,7 +120,8 @@
 
       
       <div class="ms-auto d-flex gap-2 align-items-center">
-  <span id="navUsername" class="navbar-text text-warning fw-semibold"></span>
+  <span id="onlineUsers" class="navbar-text text-info fw-semibold"></span>
+
 </div>
 
 
@@ -544,7 +545,7 @@ function downloadLinuxPDF(session, filename) {
 
   </script>
 <script>
-  window.API = 'https://script.google.com/macros/s/AKfycbw35DNLh1KerYjpBilPcqOw1litT0nhtd5xnjQj1zBkmhI6QuwkXGDIca4qL8XsYGuP-g/exec';
+  window.API = 'https://script.google.com/macros/s/AKfycbzurA9vWdShU3aaJ0nKCT3PqqQET4reewk7oWV0SMPEgl2sTOovZlGz14tJZPPruf-ZPA/exec';
 </script>
 
 
@@ -755,35 +756,48 @@ document.addEventListener('keydown', async function (e) {
 });
 </script>
 
-
 <script>
-  function getCurrentUser() {
-    let user = localStorage.getItem('currentUser');
+const ONLINE_API = window.API; // your existing GAS URL
+const CURRENT_USER = localStorage.getItem('currentUser');
 
-    if (!user) {
-      user = prompt('Enter your name');
-      if (user && user.trim()) {
-        localStorage.setItem('currentUser', user.trim());
-      }
+async function pingUser() {
+  if (!CURRENT_USER) return;
+
+  await fetch(ONLINE_API, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'pingUser',
+      name: CURRENT_USER
+    })
+  });
+}
+
+async function fetchOnlineUsers() {
+  try {
+    const res = await fetch(ONLINE_API, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getOnlineUsers' })
+    });
+
+    const data = await res.json();
+    if (data.status === 'success') {
+      document.getElementById('onlineUsers').innerHTML =
+        `🟢 Online: ${data.users.join(', ')}`;
     }
-
-    return user;
+  } catch (e) {
+    console.error(e);
   }
+}
 
-  function showUserInNavbar() {
-    const username = getCurrentUser();
-    const navUser = document.getElementById('navUsername');
+// ping every 15 sec
+setInterval(pingUser, 15000);
+// refresh list every 10 sec
+setInterval(fetchOnlineUsers, 10000);
 
-    if (username && navUser) {
-      navUser.innerHTML = `👤 ${username}`;
-    }
-  }
-
-  // Run when page loads
-  document.addEventListener('DOMContentLoaded', showUserInNavbar);
+// initial load
+pingUser();
+fetchOnlineUsers();
 </script>
-
-
 
 
 
