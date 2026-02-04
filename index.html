@@ -137,6 +137,9 @@
 
   <div id="latestNotification" class="alert alert-info text-center mb-0">Latest notes: Loading…</div>
 
+
+
+
   <main class="container py-4">
     <div class="mb-3 d-flex gap-2 flex-wrap">
       <button class="btn btn-success" onclick="downloadSQLFile('Afternoon','Afternoon.sql')">Download SQL Afternoon Notes</button>
@@ -271,6 +274,9 @@
      Original notes/calendar (kept exactly)
     ***********************/
     let allNotes = [];
+
+    const CURRENT_BATCH = 'JAN_22_2026';
+
     let currentMonthIndex, currentYear;
 
     const monthMap = { JAN: "01", FEB: "02", MAR: "03", APR: "04", MAY: "05", JUN: "06", JUL: "07", AUG: "08", SEP: "09", OCT: "10", NOV: "11", DEC: "12" };
@@ -296,6 +302,9 @@
     const res = await fetch("notes.json");
     const notes = await res.json();
     allNotes = notes;
+
+    document.getElementById('batchSelect').value = CURRENT_BATCH;
+
 
     const today = new Date();
     currentMonthIndex = today.getMonth();
@@ -333,8 +342,20 @@
       const today = new Date();
       for(let d=1; d<=daysInMonth; d++){
         const dayStr=String(d).padStart(2,'0');
-        const hasNote = allNotes.some(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; });
+        //const hasNote = allNotes.some(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; });
        // const dayCell = document.createElement("div"); dayCell.className = "calendar-day" + (hasNote ? " has-notes": ""); dayCell.textContent = d;
+       
+       const hasNote = allNotes.some(n => {
+  if (n.batch !== getSelectedBatch()) return false;
+  const { day, monthNum, year } = parseNoteDate(n.date);
+  return (
+    day === dayStr &&
+    monthNum === currentMonthIndex + 1 &&
+    Number(year) === currentYear
+  );
+});
+
+       
        const dayCell = document.createElement("div");
 dayCell.className = "calendar-day" + (hasNote ? " has-notes": "");
 dayCell.textContent = d;
@@ -369,7 +390,16 @@ dayCell.setAttribute("data-bs-html", "true");
        
        
        if(today.getMonth()===currentMonthIndex && today.getFullYear()===currentYear && today.getDate()===d) dayCell.classList.add("today");
-        dayCell.addEventListener("click", ()=>{ const filtered = allNotes.filter(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; }); renderNotes(filtered); });
+        //dayCell.addEventListener("click", ()=>{ const filtered = allNotes.filter(n=>{ const {day, monthNum, year} = parseNoteDate(n.date); return day===dayStr && monthNum=== currentMonthIndex+1 && Number(year)===currentYear; }); renderNotes(filtered); });
+        
+                dayCell.addEventListener("click", ()=>{ if (n.batch !== getSelectedBatch()) return false;
+  const { day, monthNum, year } = parseNoteDate(n.date);
+  return (
+    day === dayStr &&
+    monthNum === currentMonthIndex + 1 &&
+    Number(year) === currentYear
+  ); });
+
         calendar.appendChild(dayCell);
       }
       const totalCells = (firstDay-1) + daysInMonth; const trailing = (7 - (totalCells % 7)) % 7;
@@ -402,7 +432,9 @@ setTimeout(() => {
     //function downloadSQLFile(session, filename){ const sessionNotes = allNotes.filter(n=>n.session === session); const sqlContent = sessionNotes.map(n=>`-- ${n.date} : ${n.title}\n${n.body}\n\n`).join(""); const blob = new Blob([sqlContent], { type: "text/sql" }); const url = URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); showNotification(`${filename} has been updated and downloaded!`); }
 function downloadSQLFile(session, filename) {
   const sessionNotes = allNotes.filter(
-    n => n.session === session && n.subject === "SQL"
+    n => n.session === session &&
+  n.subject === "SQL" &&
+  n.batch === getSelectedBatch()
   );
 
   const sqlContent = sessionNotes
@@ -468,7 +500,9 @@ function downloadLinuxPDF(session, filename) {
   const doc = new jsPDF("p", "mm", "a4");
 
   const linuxNotes = allNotes.filter(
-    n => n.session === session && n.subject === "LINUX"
+    n => n.session === session &&
+  n.subject === "LINUX" &&
+  n.batch === getSelectedBatch()
   );
 
   if (!linuxNotes.length) {
@@ -540,7 +574,14 @@ function downloadLinuxPDF(session, filename) {
     // start notes load
     loadNotes();
 
-   
+   function getSelectedBatch() {
+  return document.getElementById('batchSelect').value;
+}
+
+document.getElementById('batchSelect').addEventListener('change', () => {
+  renderCalendar();
+  clearNotesView();
+});
 
 
   </script>
