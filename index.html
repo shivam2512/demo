@@ -112,6 +112,10 @@
   <nav class="navbar navbar-dark bg-dark">
     <div class="container d-flex align-items-center">
       <span class="navbar-brand">Practice Session Notes</span>
+      <button class="btn btn-danger ms-3"
+  onclick="initExam()">
+  Start MCQ Test
+</button>
 
 <button id="openAssignmentsBtn" class="btn btn-warning ms-3"
   onclick="document.getElementById('assignmentSection').scrollIntoView({behavior:'smooth'})">
@@ -209,7 +213,46 @@
   
 </section>
 
+<!-- ================= EXAM MODULE ================= -->
+<section id="examSection" class="d-none mt-5">
+  <div class="card p-4">
+    <div class="d-flex justify-content-between">
+      <h4>MCQ Test</h4>
+      <h5>⏳ Time Left: <span id="timer">05:00</span></h5>
+    </div>
 
+    <hr>
+
+    <form id="examForm">
+
+      <div class="mb-3">
+        <p><b>Q1. SQL stands for?</b></p>
+        <input type="radio" name="q1" value="A"> Structured Query Language<br>
+        <input type="radio" name="q1" value="B"> Simple Query Language<br>
+        <input type="radio" name="q1" value="C"> System Query Logic<br>
+      </div>
+
+      <div class="mb-3">
+        <p><b>Q2. Which is Linux?</b></p>
+        <input type="radio" name="q2" value="A"> OS<br>
+        <input type="radio" name="q2" value="B"> DB<br>
+        <input type="radio" name="q2" value="C"> IDE<br>
+      </div>
+
+      <div class="mb-3">
+        <p><b>Q3. SELECT is used for?</b></p>
+        <input type="radio" name="q3" value="A"> Insert<br>
+        <input type="radio" name="q3" value="B"> Fetch Data<br>
+        <input type="radio" name="q3" value="C"> Delete<br>
+      </div>
+
+      <button type="button" class="btn btn-success"
+        onclick="submitExam()">Submit Exam</button>
+
+    </form>
+  </div>
+</section>
+<!-- ================================================= -->
 
   </main>
 
@@ -886,6 +929,152 @@ setInterval(fetchOnlineUsers, 10000);
   }
 </script>
 
+<script>
+let examStarted = false;
+let examSubmitted = false;
+let examDuration = 5 * 60; // 5 minutes
+let timerInterval;
 
+// ================= INIT EXAM =================
+async function initExam() {
+
+  const name = prompt("Enter Your Name");
+  const mobile = prompt("Enter Mobile Number");
+
+  if (!name || !mobile) return;
+
+  // Check one attempt
+  const res = await fetch(API, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: "checkAttempt",
+      mobile: mobile
+    })
+  });
+
+  const data = await res.json();
+
+  if (!data.allowed) {
+    alert("❌ You have already attempted this exam.");
+    return;
+  }
+
+  window.studentExam = { name, mobile };
+
+  document.getElementById("examSection").classList.remove("d-none");
+
+  startExam();
+}
+
+// ================= START =================
+function startExam() {
+  examStarted = true;
+  enterFullscreen();
+  startTimer();
+}
+
+// ================= TIMER =================
+function startTimer() {
+  timerInterval = setInterval(() => {
+
+    let min = Math.floor(examDuration / 60);
+    let sec = examDuration % 60;
+
+    document.getElementById("timer").innerText =
+      `${min}:${sec < 10 ? '0' : ''}${sec}`;
+
+    examDuration--;
+
+    if (examDuration < 0) {
+      clearInterval(timerInterval);
+      alert("⏰ Time Up!");
+      submitExam();
+    }
+
+  }, 1000);
+}
+
+// ================= CALCULATE SCORE =================
+function calculateScore() {
+  let score = 0;
+
+  const answers = {
+    q1: "A",
+    q2: "A",
+    q3: "B"
+  };
+
+  Object.keys(answers).forEach(q => {
+    const selected = document.querySelector(`input[name="${q}"]:checked`);
+    if (selected && selected.value === answers[q]) {
+      score++;
+    }
+  });
+
+  return score;
+}
+
+// ================= SUBMIT =================
+async function submitExam() {
+
+  if (examSubmitted) return;
+
+  examSubmitted = true;
+  clearInterval(timerInterval);
+
+  const score = calculateScore();
+  const total = 3;
+  const percent = ((score/total)*100).toFixed(2);
+
+  document.getElementById("examSection").innerHTML = `
+    <div class="text-center">
+      <h3>✅ Exam Submitted</h3>
+      <h4>Your Score: ${score}/${total}</h4>
+      <h5>Percentage: ${percent}%</h5>
+    </div>
+  `;
+
+  await fetch(API, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: "submitExam",
+      name: studentExam.name,
+      mobile: studentExam.mobile,
+      score: score,
+      total: total
+    })
+  });
+}
+
+// ================= SECURITY =================
+
+// Disable right click
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// Disable copy
+document.addEventListener('copy', e => e.preventDefault());
+
+// Disable devtools
+document.addEventListener('keydown', function(e) {
+  if (e.key === "F12" ||
+     (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+     (e.ctrlKey && e.key === 'U')) {
+    e.preventDefault();
+  }
+});
+
+// Tab switch
+document.addEventListener("visibilitychange", function () {
+  if (examStarted && !examSubmitted && document.hidden) {
+    alert("⚠ Tab switch detected. Auto submitting.");
+    submitExam();
+  }
+});
+
+function enterFullscreen() {
+  const elem = document.documentElement;
+  if (elem.requestFullscreen) elem.requestFullscreen();
+}
+</script>
 </body>
 </html>
