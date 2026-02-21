@@ -645,7 +645,7 @@ document.getElementById('batchSelect').addEventListener('change', () => {
 
   </script>
 <script>
-  window.API = 'https://script.google.com/macros/s/AKfycbwJqw2Ul3pY_HCd1njfIvLBhvlPusfsYDtT8djumsLeaH1Ds1kLzLfeDTBxbtiuX283UA/exec';
+  window.API = 'https://script.google.com/macros/s/AKfycbw_JLb8nW6mpDtgddJPPGaZzsDfMqaqZlqB7ZmVf4uffBFmqtKcBFV2K07frIlQnqIihg/exec';
 </script>
 
 
@@ -1021,7 +1021,12 @@ async function submitExam() {
 
   examSubmitted = true;
   clearInterval(timerInterval);
+const studentAnswers = {};
 
+["q1","q2","q3"].forEach(q => {
+  const selected = document.querySelector(`input[name="${q}"]:checked`);
+  studentAnswers[q] = selected ? selected.value : "Not Attempted";
+});
   const score = calculateScore();
   const total = 3;
   const percent = ((score/total)*100).toFixed(2);
@@ -1038,10 +1043,11 @@ async function submitExam() {
     method: 'POST',
     body: JSON.stringify({
       action: "secureExamSubmit",
-      name: studentExam.name,
-      mobile: studentExam.mobile,
-      score: score,
-      total: total
+name: studentExam.name,
+mobile: studentExam.mobile,
+score: score,
+total: total,
+answers: studentAnswers
     })
   });
 }
