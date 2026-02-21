@@ -1037,7 +1037,7 @@ async function submitExam() {
   await fetch(API, {
     method: 'POST',
     body: JSON.stringify({
-      action: "submitExam",
+      action: "secureExamSubmit",
       name: studentExam.name,
       mobile: studentExam.mobile,
       score: score,
