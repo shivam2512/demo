@@ -938,17 +938,34 @@ let timerInterval;
 // ================= INIT EXAM =================
 async function initExam() {
 
-  const name = prompt("Enter Your Name");
-  const mobile = prompt("Enter Mobile Number");
+  const name = prompt("Enter Your Full Name");
+  if (!name || name.trim().length < 3) {
+    alert("Enter valid full name");
+    return;
+  }
 
-  if (!name || !mobile) return;
+  const mobile = prompt("Enter 10 Digit Mobile Number");
+  const cleanMobile = mobile ? mobile.replace(/\D/g, '') : '';
+
+  if (!/^\d{10}$/.test(cleanMobile)) {
+    alert("Mobile number must be exactly 10 digits");
+    return;
+  }
+
+  const email = prompt("Enter Your Email Address");
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!email || !emailPattern.test(email)) {
+    alert("Enter valid email address");
+    return;
+  }
 
   // Check one attempt
   const res = await fetch(API, {
     method: 'POST',
     body: JSON.stringify({
-     action: "checkExamAttempt",
-      mobile: mobile
+      action: "checkExamAttempt",
+      mobile: cleanMobile
     })
   });
 
@@ -959,7 +976,11 @@ async function initExam() {
     return;
   }
 
-  window.studentExam = { name, mobile };
+  window.studentExam = {
+    name: name.trim(),
+    mobile: cleanMobile,
+    email: email.trim()
+  };
 
   document.getElementById("examSection").classList.remove("d-none");
 
