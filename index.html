@@ -215,34 +215,6 @@
 
 <!-- ================= EXAM MODULE ================= -->
 <section id="examSection" class="d-none mt-5">
-<div id="instructionCard" class="card shadow-lg border-0 mb-4">
-  <div class="card-header bg-dark text-white p-3">
-    <h4 class="mb-0"><i class="bi bi-info-circle me-2"></i>Exam Instructions & Rules</h4>
-  </div>
-  <div class="card-body p-4">
-    <div class="alert alert-warning">
-      <strong>Important:</strong> Clicking "Start Exam" will enter <strong>Full Screen Mode</strong>. Do not try to exit or switch tabs.
-    </div>
-    <ul class="list-group list-group-flush mb-4">
-      <li class="list-group-item">✅ <strong>Total Time:</strong> 30 Minutes.</li>
-      <li class="list-group-item">✅ <strong>Questions:</strong> 40 MCQs (1 mark each) + 5 SQL Queries (4 marks each).</li>
-      <li class="list-group-item">✅ <strong>Passing Marks:</strong> 30 / 60.</li>
-      <li class="list-group-item">🚫 <strong>Prohibition:</strong> Right-click, Copy-Paste, and Tab switching are disabled.</li>
-      <li class="list-group-item">🚫 <strong>Auto-Submit:</strong> Switching tabs or minimizing the window will result in instant auto-submission.</li>
-    </ul>
-    <button class="btn btn-primary btn-lg w-100 py-3 shadow" onclick="launchFullscreenExam()">
-      I UNDERSTAND - START EXAM NOW
-    </button>
-  </div>
-</div>
-
-<div id="actualExamForm" style="display:none;">
-  <div class="sticky-top bg-white border-bottom p-2 d-flex justify-content-between align-items-center">
-     <h5 class="text-primary mb-0">SQL Practice Exam</h5>
-     <div id="examTimer" class="h4 text-danger fw-bold mb-0">30:00</div>
-  </div>
-  </div>
-
   <div class="card p-4">
     <div class="d-flex justify-content-between">
       <h4>MCQ Test</h4>
@@ -1046,7 +1018,7 @@ document.getElementById('batchSelect').addEventListener('change', () => {
 
   </script>
 <script>
-  window.API = 'https://script.google.com/macros/s/AKfycbzDZN8sR_VkUJqKhZ78lD6Q7RMOq7d_D4V5JTHK8z4zNkoHPSWQFxqY3C4TfwKOOkks4g/exec';
+  window.API = 'https://script.google.com/macros/s/AKfycbxAZb0HF920Ye-IXjVZCJumioWX3kzt3PWdVzTO1vSSEV0u-gNZtBSksIIUPlmNS1zmnQ/exec';
 </script>
 
 
@@ -1390,58 +1362,9 @@ async function initExam() {
 
 // ================= START =================
 function startExam() {
-//   examStarted = true;
-//   enterFullscreen();
-//   startTimer();
-
-let examTimeLeft = 30 * 60; // 30 Minutes in seconds
-let timerInterval;
-
-function launchFullscreenExam() {
-  const elem = document.documentElement;
-  
-  // Enter Fullscreen
-  if (elem.requestFullscreen) {
-    elem.requestFullscreen();
-  } else if (elem.webkitRequestFullscreen) { /* Safari */
-    elem.webkitRequestFullscreen();
-  } else if (elem.msRequestFullscreen) { /* IE11 */
-    elem.msRequestFullscreen();
-  }
-
-  // UI Changes
-  document.getElementById('instructionCard').classList.add('d-none');
-  document.getElementById('actualExamForm').style.display = 'block';
-  
+  examStarted = true;
+  enterFullscreen();
   startTimer();
-  window.examStarted = true;
-}
-
-function startTimer() {
-  const timerDisplay = document.getElementById('examTimer');
-  timerInterval = setInterval(() => {
-    let minutes = Math.floor(examTimeLeft / 60);
-    let seconds = examTimeLeft % 60;
-    
-    timerDisplay.innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-    
-    if (examTimeLeft <= 0) {
-      clearInterval(timerInterval);
-      alert("Time is up! Your exam is being submitted automatically.");
-      submitExam(); // Trigger your existing submit function
-    }
-    examTimeLeft--;
-  }, 1000);
-}
-
-// Add security to prevent exiting fullscreen easily
-document.addEventListener('fullscreenchange', () => {
-  if (!document.fullscreenElement && window.examStarted && !window.examSubmitted) {
-    alert("Warning: Exiting full screen is not allowed. Please stay in full screen or your exam may be auto-submitted.");
-    // Optionally trigger auto-submit here if you want to be strict
-    // submitExam();
-  }
-});
 }
 
 // ================= TIMER =================
