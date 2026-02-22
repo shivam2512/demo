@@ -1391,43 +1391,54 @@ function startTimer() {
 
 
 // ================= SUBMIT =================
+
 async function submitExam() {
+  // Prevent double submission
+  const submitBtn = document.querySelector('#examForm button[type="button"]');
+  submitBtn.disabled = true;
 
-  if (examSubmitted) return;
+  try {
+    const form = document.getElementById('examForm');
+    const data = {};
 
-  examSubmitted = true;
-  clearInterval(timerInterval);
-const studentAnswers = {};
+    // Collect all radio answers
+    for (let i = 1; i <= 40; i++) {
+      const q = form.querySelector(`input[name="q${i}"]:checked`);
+      data[`q${i}`] = q ? q.value : null;
+    }
 
-["q1","q2","q3"].forEach(q => {
-  const selected = document.querySelector(`input[name="${q}"]:checked`);
-  studentAnswers[q] = selected ? selected.value : "Not Attempted";
-});
-  const score = calculateScore();
-  const total = 3;
-  const percent = ((score/total)*100).toFixed(2);
+    // Collect text answers
+    for (let i = 41; i <= 45; i++) {
+      const q = form.querySelector(`textarea[name="q${i}"]`);
+      data[`q${i}`] = q ? q.value.trim() : '';
+    }
 
-  document.getElementById("examSection").innerHTML = `
-    <div class="text-center">
-      <h3>✅ Exam Submitted</h3>
-      <h4>Your Score: ${score}/${total}</h4>
-      <h5>Percentage: ${percent}%</h5>
-    </div>
-  `;
+    console.log("Collected Exam Data:", data);
 
-  await fetch(API, {
-    method: 'POST',
-    body: JSON.stringify({
-      action: "secureExamSubmit",
-name: studentExam.name,
-mobile: studentExam.mobile,
-email: studentExam.email,
-score: score,
-total: total,
-answers: studentAnswers
-    })
-  });
+    // Replace with your Google Script URL
+    const API = "https://script.google.com/macros/s/AKfycbxLaSfmgDMdAH1HqbROdgYS7fT0C1u2Il_ieH-4mkhK6u2K8SvpNMKjy7dc0t82DGtBNg/exec";
+
+    const response = await fetch(API, {
+      method: "POST",
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" }
+    });
+
+    const result = await response.json();
+    console.log("Server response:", result);
+
+    alert("Exam submitted successfully!");
+    // Optionally hide exam section
+    // document.getElementById('examSection').classList.add('d-none');
+
+  } catch (err) {
+    console.error("Submission error:", err);
+    alert("Failed to submit exam. Check console.");
+  } finally {
+    submitBtn.disabled = false;
+  }
 }
+
 
 // ================= SECURITY =================
 
