@@ -1393,49 +1393,62 @@ function startTimer() {
 // ================= SUBMIT =================
 
 async function submitExam() {
-  // Prevent double submission
+  // 1. Prevent double submission
   const submitBtn = document.querySelector('#examForm button[type="button"]');
+  if (submitBtn.disabled) return;
   submitBtn.disabled = true;
+  submitBtn.innerText = "Submitting...";
 
   try {
     const form = document.getElementById('examForm');
-    const data = {};
+    
+    // 2. Prepare the payload structure the Script expects
+    const payload = {
+      action: "secureExamSubmit",           // Missing in your current code
+      name: window.studentExam.name,        // Missing in your current code
+      mobile: window.studentExam.mobile,    // Missing in your current code
+      email: window.studentExam.email,      // Missing in your current code
+      answers: {},                          // Object for MCQ (q1-q40)
+    };
 
-    // Collect all radio answers
+    // 3. Collect MCQ answers (q1 to q40) into the 'answers' object
     for (let i = 1; i <= 40; i++) {
       const q = form.querySelector(`input[name="q${i}"]:checked`);
-      data[`q${i}`] = q ? q.value : null;
+      payload.answers[`q${i}`] = q ? q.value : null;
     }
 
-    // Collect text answers
+    // 4. Collect SQL answers (q41 to q45) directly into payload
     for (let i = 41; i <= 45; i++) {
       const q = form.querySelector(`textarea[name="q${i}"]`);
-      data[`q${i}`] = q ? q.value.trim() : '';
+      payload[`q${i}`] = q ? q.value.trim() : '';
     }
 
-    console.log("Collected Exam Data:", data);
-
-    // Replace with your Google Script URL
-    const API = "https://script.google.com/macros/s/AKfycbyRZLHWMCT8874ljO88bzmn2l9kj-4DdUQBvflkzmoRs-8QDT-kBXw4hZAulpD1zEVHHQ/exec";
-
-    const response = await fetch(API, {
+    // 5. Send to Google Script
+    const response = await fetch(window.API, { // Use the global API variable
       method: "POST",
-      body: JSON.stringify(data),
-      headers: { "Content-Type": "application/json" }
+      body: JSON.stringify(payload)
     });
 
     const result = await response.json();
-    console.log("Server response:", result);
 
-    alert("Exam submitted successfully!");
-    // Optionally hide exam section
-    // document.getElementById('examSection').classList.add('d-none');
+    if (result.status === "success") {
+      examSubmitted = true;
+      clearInterval(timerInterval);
+      alert("✅ Exam submitted successfully! Check your email for the scorecard.");
+      document.getElementById("examSection").innerHTML = `
+        <div class="alert alert-success text-center">
+          <h3>Exam Submitted!</h3>
+          <p>Your results have been sent to ${window.studentExam.email}</p>
+        </div>`;
+    } else {
+      throw new Error(result.message || "Server rejected submission");
+    }
 
   } catch (err) {
     console.error("Submission error:", err);
-    alert("Failed to submit exam. Check console.");
-  } finally {
+    alert("❌ Error: " + err.message);
     submitBtn.disabled = false;
+    submitBtn.innerText = "Submit Exam";
   }
 }
 
