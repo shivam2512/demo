@@ -5,154 +5,102 @@
   <title>Practice Session Notes + Assignments (CodeMirror)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>
-/* ===== GLOBAL ===== */
-body {
-  background: linear-gradient(135deg, #eef2ff, #f8fafc);
-  font-family: 'Segoe UI', Tahoma, sans-serif;
-}
+  <style>
+    pre { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
+    .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+    .weekday { font-weight: 600; text-align: center; color: #495057; padding: 6px 0; background: #f8f9fa; border-radius: 0.5rem; border: 1px solid #e9ecef; }
+    .calendar-day { border: 1px solid #dee2e6; padding: 12px; text-align: center; cursor: pointer; min-height: 70px; display: flex; align-items: center; justify-content: center; border-radius: 0.6rem; background-color: #ffffff; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease; font-weight: 500; }
+    .calendar-day.has-notes { background: linear-gradient(135deg, #d1e7dd, #b6e0c2); color: #0f5132; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25); border-color: #b6e0c2; }
+    .calendar-day.today { background: linear-gradient(135deg, #fff3cd, #ffe69c); color: #664d03; border-color: #ffe69c; box-shadow: 0 3px 10px rgba(255, 193, 7, 0.25); font-weight: 700; }
+    .calendar-day:hover { transform: translateY(-2px); background: linear-gradient(135deg, #f8d7da, #f5c2c7); color: #842029; box-shadow: 0 6px 16px rgba(220, 53, 69, 0.25); border-color: #f5c2c7; }
+    #calendarContainer .card { border: none; overflow: hidden; }
+    @media (max-width: 576px) {
+      .calendar { grid-template-columns: repeat(3, 1fr); }
+      .weekday { font-size: 0.8rem; padding: 4px 0; }
+      .calendar-day { min-height: 52px; font-size: 0.9rem; padding: 8px; }
+      .btn { width: 100%; }
+      .nav-controls h4 { font-size: 1rem; margin: 0 8px; }
+    }
 
-/* ===== NAVBAR ===== */
-.navbar {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
+    /* Assignment styles */
+    #assignmentSection { margin: 32px 0; }
+    #codeEditor { height: 300px; border: 1px solid #ddd; border-radius: 4px; }
+    .modal { position: fixed; top:0; left:0; width:100%; height:100%; z-index:1050; display:none; background: rgba(0,0,0,0.4); }
+    .modal .modal-dialog { margin: 6rem auto; }
+    .text-truncate-multi { overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; }
+   
 
-.navbar-brand {
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-/* ===== CARDS ===== */
-.card {
-  border-radius: 16px !important;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-}
-
-/* ===== BUTTONS ===== */
-.btn {
-  border-radius: 10px;
-  font-weight: 600;
-  padding: 10px 16px;
-  transition: all 0.2s ease;
-}
-
-.btn:hover {
-  transform: scale(1.05);
-}
-
-/* ===== LATEST NOTIFICATION ===== */
-#latestNotification {
-  background: linear-gradient(90deg, #0d6efd, #6610f2);
-  color: white;
-  font-weight: 500;
-  border: none;
-}
-
-/* ===== CALENDAR ===== */
-.calendar-day {
-  border-radius: 12px;
-  font-size: 1.1rem;
-  transition: all 0.2s ease;
-}
-
-.calendar-day.has-notes {
-  background: linear-gradient(135deg, #20c997, #198754);
-  color: white;
-}
-
-.calendar-day.today {
-  background: linear-gradient(135deg, #ffc107, #ff9800);
-  color: #000;
-}
-
-.calendar-day:hover {
-  transform: scale(1.1);
-  background: linear-gradient(135deg, #ff6b6b, #ff4757);
-  color: white;
-}
-
-/* ===== CODE BLOCK ===== */
-pre {
-  background: #0f172a !important;
-  color: #e2e8f0;
-  border-radius: 12px;
-  padding: 16px !important;
-  font-size: 0.9rem;
-}
-
-/* ===== INPUTS ===== */
-input.form-control,
-textarea.form-control,
-select {
-  border-radius: 10px !important;
-}
-
-/* ===== BADGES ===== */
-.new-badge {
-  background: #ff4757;
-  color: white;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  margin-left: 8px;
+   .new-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: red;
+  border-radius: 50%;
+  margin-left: 6px;
   animation: pulse 1s infinite;
 }
 
 @keyframes pulse {
   0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.4; }
+  50% { transform: scale(1.5); opacity: 0.3; }
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* ===== ONLINE USERS ===== */
-#onlineUsers {
-  background: rgba(13,110,253,0.1);
-  padding: 6px 12px;
-  border-radius: 10px;
+#newYearModal .modal-content {
+  border-radius: 16px;
 }
 
-/* ===== MOTIVATION BAR ===== */
+#newYearModal .modal-header {
+  border-bottom: none;
+}
+
+#newYearModal .modal-footer {
+  border-top: none;
+}
+
 .motivation-bar {
-  border-bottom: 2px solid rgba(255,255,255,0.2);
+  overflow: hidden;
+  width: 100%;
+  background: linear-gradient(
+    270deg,
+    #0d6efd,
+    #6610f2,
+    #198754,
+    #20c997
+  );
+  background-size: 600% 600%;
+  animation: gradientMove 10s ease infinite;
+  padding: 10px 0;
 }
 
 .motivation-text {
-  font-size: 1.1rem;
-  letter-spacing: 0.5px;
+  display: inline-block;
+  white-space: nowrap;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  padding-left: 100%;
+  animation: scrollText 18s linear infinite;
 }
 
-/* ===== ANIMATION ===== */
-.fade-in {
-  animation: fadeIn 0.4s ease-in-out;
+@keyframes gradientMove {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes scrollText {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
 }
 
-/* ===== EXAM SECTION ===== */
-#examSection .card {
-  background: linear-gradient(135deg, #ffffff, #f1f5f9);
+#assignmentSection,
+#openAssignmentsBtn {
+  display: none !important;
 }
 
-/* ===== MOBILE ===== */
-@media (max-width: 576px) {
-  .btn {
-    width: 100%;
-  }
 
-  .calendar-day {
-    font-size: 0.9rem;
-  }
-}
-</style>
+  </style>
 </head>
 <body>
 
