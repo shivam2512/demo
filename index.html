@@ -608,14 +608,14 @@
   </div>
 
   <script>
-    const API = 'https://script.google.com/macros/s/AKfycbzR-yEjAkJg-t3T9keOXTcB5OkSMjDe3M5GMBa6zv_krrlUDv3qhM_En448XALX2xocGA/exec';
+    const API = 'https://script.google.com/macros/s/AKfycbxarND9juoBxSbXsWITuX0GBN6BqCZIcJ_guHRL-cOe1E_ZjQZIHUQCddYINGksRLsRfA/exec';
     const CURRENT_BATCH = 'FEB_19_2026';
     
     let allNotes = [];
     let currentMonthIndex = new Date().getMonth();
     let currentYear = new Date().getFullYear();
     let examStarted = false;
-    let examDuration = 20 * 60;
+    let examDuration = 40 * 60;
     let timerInterval;
     let studentExam = null;
     let examAnswers = {};
@@ -1041,26 +1041,26 @@
         { q: 'q50', text: 'Which component is used to create or modify table structures?', options: ['DML', 'DDL', 'DCL', 'TCL'] }
       ];
       const sqlQuestions = [
-        { id: 'q51', text: 'Create a table "Employees" with Emp_ID (Primary Key), Email (Unique, Not Null), and Hire_Date (Default Current Date).' },
-        { id: 'q52', text: 'Modify the "Salary" column of an existing table to handle 10 digits with 2 decimal places and a default of 25000.' },
-        { id: 'q53', text: 'Write a query to find all employees whose names start with "A", are exactly 5 characters long, and end with "m".' },
-        { id: 'q54', text: 'Find the names and salaries of employees who earn more than the average salary of the "Sales" department.' },
-        { id: 'q55', text: 'Use a set operator to list all "Permanent_Staff" IDs that are NOT present in the "Resigned_Staff" table.' },
-        { id: 'q56', text: 'Write a query to give a 15% salary hike to all employees working in the "IT" department using arithmetic operators.' },
-        { id: 'q57', text: 'Perform a Self-Join to list each Employee Name along with their Manager\'s Name from a single "Emp" table.' },
-        { id: 'q58', text: 'Write a query to find the employee with the 4th highest salary using DENSE_RANK().' },
-        { id: 'q59', text: 'Create a view called "High_Performers" that shows only employees with a rating > 9 and salary > 80000.' },
-        { id: 'q60', text: 'Write the DCL commands to give a user "intern_user" the ability to SELECT data but REVOKE their ability to DELETE.' },
-        { id: 'q61', text: 'Create a sequence that starts at 5000, increments by 5, and never exceeds 9999.' },
-        { id: 'q62', text: 'Use a CTE to list the top 3 departments based on their total salary expenditure.' },
-        { id: 'q63', text: 'Write a query to display employee names formatted as: "Staff ID: [ID] | Name: [Name]" using concatenation.' },
-        { id: 'q64', text: 'Demonstrate TCL logic: Insert a row, create a savepoint "A", delete a row, and then rollback to savepoint "A".' },
-        { id: 'q65', text: 'Use ROWNUM to fetch only the first 10 records from a table sorted by name.' },
-        { id: 'q66', text: 'Create a Private Synonym "Emp_Ref" for the table "HR_Global_Master_Database_Table".' },
-        { id: 'q67', text: 'Add a CHECK constraint to an existing "Orders" table to ensure the "Quantity" is always greater than zero.' },
-        { id: 'q68', text: 'Select Department ID and the Count of employees for each department, but only for departments with more than 5 staff.' },
-        { id: 'q69', text: 'Write a query to find all records where the "Commission" column is NULL.' },
-        { id: 'q70', text: 'Use a LEFT JOIN to show all Departments and the names of employees in them (including departments with zero employees).' }
+        { id: 's1', text: 'Create a table "Employees" with Emp_ID (Primary Key), Email (Unique, Not Null), and Hire_Date (Default Current Date).' },
+        { id: 's2', text: 'Modify the "Salary" column of an existing table to handle 10 digits with 2 decimal places and a default of 25000.' },
+        { id: 's3', text: 'Write a query to find all employees whose names start with "A", are exactly 5 characters long, and end with "m".' },
+        { id: 's4', text: 'Find the names and salaries of employees who earn more than the average salary of the "Sales" department.' },
+        { id: 's5', text: 'Use a set operator to list all "Permanent_Staff" IDs that are NOT present in the "Resigned_Staff" table.' },
+        { id: 's6', text: 'Write a query to give a 15% salary hike to all employees working in the "IT" department using arithmetic operators.' },
+        { id: 's7', text: 'Perform a Self-Join to list each Employee Name along with their Manager\'s Name from a single "Emp" table.' },
+        { id: 's8', text: 'Write a query to find the employee with the 4th highest salary using DENSE_RANK().' },
+        { id: 's9', text: 'Create a view called "High_Performers" that shows only employees with a rating > 9 and salary > 80000.' },
+        { id: 's10', text: 'Write the DCL commands to give a user "intern_user" the ability to SELECT data but REVOKE their ability to DELETE.' },
+        { id: 's11', text: 'Create a sequence that starts at 5000, increments by 5, and never exceeds 9999.' },
+        { id: 's12', text: 'Use a CTE to list the top 3 departments based on their total salary expenditure.' },
+        { id: 's13', text: 'Write a query to display employee names formatted as: "Staff ID: [ID] | Name: [Name]" using concatenation.' },
+        { id: 's14', text: 'Demonstrate TCL logic: Insert a row, create a savepoint "A", delete a row, and then rollback to savepoint "A".' },
+        { id: 's15', text: 'Use ROWNUM to fetch only the first 10 records from a table sorted by name.' },
+        { id: 's16', text: 'Create a Private Synonym "Emp_Ref" for the table "HR_Global_Master_Database_Table".' },
+        { id: 's17', text: 'Add a CHECK constraint to an existing "Orders" table to ensure the "Quantity" is always greater than zero.' },
+        { id: 's18', text: 'Select Department ID and the Count of employees for each department, but only for departments with more than 5 staff.' },
+        { id: 's19', text: 'Write a query to find all records where the "Commission" column is NULL.' },
+        { id: 's20', text: 'Use a LEFT JOIN to show all Departments and the names of employees in them (including departments with zero employees).' }
       ];
 
       let html = `
@@ -1075,14 +1075,14 @@
 
           <div class="exam-info">
             <ul>
-              <li><span style="color: #6366f1; font-weight: bold;">⏱</span> <b>Total Time:</b> 20 Minutes</li>
-              <li><span style="color: #6366f1; font-weight: bold;">📝</span> <b>Section A:</b> 40 MCQs (1 mark each)</li>
-              <li><span style="color: #6366f1; font-weight: bold;">💻</span> <b>Section B:</b> 5 SQL Queries (4 marks each)</li>
+              <li><span style="color: #6366f1; font-weight: bold;">⏱</span> <b>Total Time:</b> 40 Minutes</li>
+<li><span style="color: #6366f1; font-weight: bold;">📝</span> <b>Section A:</b> 50 MCQs (1 mark each)</li>
+<li><span style="color: #6366f1; font-weight: bold;">💻</span> <b>Section B:</b> 20 SQL Queries (2.5 marks each)</li>
               <li><span style="color: #dc2626; font-weight: bold;">🚫</span> <b>Strict Policy:</b> Auto-submit on tab switch or minimizing.</li>
             </ul>
           </div>
 
-          <h4 style="font-weight: 700; margin-top: 2rem;">Section A: Multiple Choice Questions (40 Marks)</h4>
+          <h4 style="font-weight: 700; margin-top: 2rem;">Section A: Multiple Choice Questions (50 Marks)</h4>
           <hr style="margin-bottom: 1.5rem;">
 
           <div>
@@ -1108,7 +1108,7 @@
 
       html += `
           </div>
-          <h4 style="font-weight: 700; margin-top: 3rem;">Section B: SQL Query Writing (20 Marks)</h4>
+<h4 style="font-weight: 700; margin-top: 3rem;">Section B: SQL Query Writing (50 Marks)</h4>
           <hr style="margin-bottom: 1.5rem;">
           <div>
       `;
@@ -1117,8 +1117,8 @@
         html += `
           <div class="sql-question-card">
             <p class="question-text">Q${41 + idx}. ${item.text}</p>
-            <textarea class="sql-textarea" rows="4" onchange="examAnswers['${item.q}'] = this.value" required></textarea>
-          </div>
+<textarea class="sql-textarea" rows="4" onchange="examAnswers['${item.id}'] = this.value" required></textarea>
+            </div>
         `;
       });
 
@@ -1153,9 +1153,9 @@
         payload.answers[`q${i}`] = examAnswers[`q${i}`] || null;
       }
 
-      for (let i = 41; i <= 45; i++) {
-        payload[`q${i}`] = examAnswers[`q${i}`] || '';
-      }
+     for (let i = 1; i <= 20; i++) {
+  payload[`s${i}`] = examAnswers[`s${i}`] || '';
+}
 
       try {
         const response = await fetch(API, {
