@@ -608,7 +608,7 @@
   </div>
 
   <script>
-    const API = 'https://script.google.com/macros/s/AKfycbxarND9juoBxSbXsWITuX0GBN6BqCZIcJ_guHRL-cOe1E_ZjQZIHUQCddYINGksRLsRfA/exec';
+    const API = 'https://script.google.com/macros/s/AKfycbybE1PbyXPl4QQq_KHU2GOdQ71OtZvZ8TqJ6uyG4Wkx14brWp2MTAca7UqFO53xoFVKKA/exec';
     const CURRENT_BATCH = 'FEB_19_2026';
     
     let allNotes = [];
@@ -1116,8 +1116,8 @@
       sqlQuestions.forEach((item, idx) => {
         html += `
           <div class="sql-question-card">
-            <p class="question-text">Q${41 + idx}. ${item.text}</p>
-<textarea class="sql-textarea" rows="4" onchange="examAnswers['${item.id}'] = this.value" required></textarea>
+<p class="question-text">Q${51 + idx}. ${item.text}</p>
+            <textarea class="sql-textarea" rows="4" onchange="examAnswers['${item.id}'] = this.value" required></textarea>
             </div>
         `;
       });
